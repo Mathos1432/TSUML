@@ -10,7 +10,7 @@ const FONT_SIZE = 12;
 const FONT_NAME_KEY = "fontname";
 const FONT_NAME = "Verdana";
 const LAYOUT_KEY = "layout";
-const LAYOUT_TYPE = "sfdp";
+const LAYOUT_TYPE = "dot"; //dot, sfdp and circo give pretty good results
 const OVERLAP_KEY = "overlap";
 const OVERLAP_TYPE = "scale";
 
