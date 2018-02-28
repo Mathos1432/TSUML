@@ -8,7 +8,8 @@
     },
     "scripts": {
         "make": "cd ./src && tsc && cd ../",
-        "start": "node ./bin/tsviz-main.js ../projet2/log2990-01/server -r -d ./diagram-server.png"
+        "start": "cd ./src && tsc && cd ../ && node ./bin/tsviz-main.js ../projet2/log2990-01/server -r -d ./diagram-server.png",
+        "debug": "node --nolazy --inspect-brk=9229 ./bin/tsviz-main.js ../projet2/log2990-01/server -r -d ./diagram-server.png"
     },
     "preferGlobal": true,
     "repository": {

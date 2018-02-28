@@ -4,7 +4,8 @@ import { readdirSync, lstatSync, existsSync, statSync } from "fs";
 import * as ts from "typescript";
 import { Module } from "./ts-elements";
 import { Analyser } from "./ts-analyser";
-import { UmlBuilder, DiagramOutputType } from "./uml-builder";
+import { UmlBuilder } from "./uml-builder";
+import { DiagramOutputType } from "./diagramOutputType";
 
 const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
     noEmitOnError: true,
@@ -88,6 +89,6 @@ export class Parser {
 export function createGraph(targetPath: string, outputFilename: string, dependenciesOnly: boolean, recursive: boolean, svgOutput: boolean) {
     const visualiser = new Parser(recursive);
     const modules = visualiser.getModules(targetPath);
-    const umlBuilder = new UmlBuilder(svgOutput ? DiagramOutputType.SVG : DiagramOutputType.PNG);
-    umlBuilder.build(modules, outputFilename, dependenciesOnly);
+    const umlBuilder = new UmlBuilder(svgOutput ? DiagramOutputType.SVG : DiagramOutputType.PNG, [], []);
+    umlBuilder.outputUmlDiagram(modules, outputFilename, dependenciesOnly);
 }

@@ -2,30 +2,24 @@
 var graphviz = require("graphviz");
 var ts_elements_1 = require("./ts-elements");
 var extensions_1 = require("./extensions");
+var diagramOutputType_1 = require("./diagramOutputType");
 var FONT_SIZE_KEY = "fontsize";
 var FONT_SIZE = 12;
 var FONT_NAME_KEY = "fontname";
 var FONT_NAME = "Verdana";
-(function (DiagramOutputType) {
-    DiagramOutputType[DiagramOutputType["SVG"] = 0] = "SVG";
-    DiagramOutputType[DiagramOutputType["PNG"] = 1] = "PNG";
-})(exports.DiagramOutputType || (exports.DiagramOutputType = {}));
-var DiagramOutputType = exports.DiagramOutputType;
+var LAYOUT_KEY = "layout";
+var LAYOUT_TYPE = "sfdp";
+var OVERLAP_KEY = "overlap";
+var OVERLAP_TYPE = "scale";
 var UmlBuilder = (function () {
-    function UmlBuilder(outputType) {
-        this.graph = graphviz.digraph("G");
-        this.graph.set(FONT_SIZE_KEY, FONT_SIZE);
-        this.graph.set("layout", "sfdp");
-        this.graph.set("overlap", "scale");
-        this.graph.set(FONT_NAME_KEY, FONT_NAME);
-        this.graph.setEdgeAttribut(FONT_SIZE_KEY, FONT_SIZE);
-        this.graph.setEdgeAttribut(FONT_NAME_KEY, FONT_NAME);
-        this.graph.setNodeAttribut(FONT_SIZE_KEY, FONT_SIZE);
-        this.graph.setNodeAttribut(FONT_NAME_KEY, FONT_NAME);
-        this.graph.setNodeAttribut("shape", "record");
+    function UmlBuilder(outputType, modulesToIgnore, dependenciesToIgnore) {
         this.outputType = outputType;
+        this.modulesToIgnore = modulesToIgnore;
+        this.dependenciesToIgnore = dependenciesToIgnore;
+        this.nodes = {};
+        this.initialiseGraphSettings();
     }
-    UmlBuilder.prototype.build = function (modules, outputFilename, dependenciesOnly) {
+    UmlBuilder.prototype.outputUmlDiagram = function (modules, outputFilename, dependenciesOnly) {
         var _this = this;
         modules.forEach(function (module) {
             _this.buildModule(module, _this.graph, module.path, 0, dependenciesOnly);
@@ -36,9 +30,19 @@ var UmlBuilder = (function () {
                 console.warn("Could not find Graphviz in PATH.");
             }
         }
-        this.graph.output({
-            type: DiagramOutputType[this.outputType].toLowerCase()
-        }, outputFilename);
+        this.graph.output(diagramOutputType_1.DiagramOutputType[this.outputType].toLowerCase(), outputFilename);
+    };
+    UmlBuilder.prototype.initialiseGraphSettings = function () {
+        this.graph = graphviz.digraph("G");
+        this.graph.set(LAYOUT_KEY, LAYOUT_TYPE);
+        this.graph.set(OVERLAP_KEY, OVERLAP_TYPE);
+        this.graph.set(FONT_SIZE_KEY, FONT_SIZE);
+        this.graph.set(FONT_NAME_KEY, FONT_NAME);
+        this.graph.setEdgeAttribut(FONT_SIZE_KEY, FONT_SIZE);
+        this.graph.setEdgeAttribut(FONT_NAME_KEY, FONT_NAME);
+        this.graph.setNodeAttribut(FONT_SIZE_KEY, FONT_SIZE);
+        this.graph.setNodeAttribut(FONT_NAME_KEY, FONT_NAME);
+        this.graph.setNodeAttribut("shape", "record");
     };
     UmlBuilder.prototype.buildModule = function (module, graph, path, level, dependenciesOnly) {
         var _this = this;
@@ -46,10 +50,26 @@ var UmlBuilder = (function () {
         var moduleId = this.getGraphNodeId(path, module.name);
         var cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
         cluster.set("label", (module.visibility !== ts_elements_1.Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
+        cluster.set("style", "filled");
+        cluster.set("color", "gray" + Math.max(40, (95 - (level * 6))));
         if (dependenciesOnly) {
             extensions_1.Collections.distinct(module.dependencies, function (d) { return d.name; }).forEach(function (d) {
                 if (d.name[0] !== "@" && module.name !== "app.module" && d.name !== "three" && d.name !== "inversify") {
-                    graph.addEdge(module.name, _this.getGraphNodeId("", d.name));
+                    var edge = graph.addEdge(module.name, _this.getGraphNodeId("", d.name));
+                    var targetNode = edge.nodeTwo;
+                    if (!_this.nodes[targetNode.id]) {
+                        _this.nodes[targetNode.id] = {
+                            node: targetNode, count: 0
+                        };
+                    }
+                    _this.nodes[targetNode.id].count++;
+                    if (_this.nodes[targetNode.id].count >= 5) {
+                        targetNode.set("color", "orange");
+                        targetNode.set("style", "filled");
+                    }
+                    if (_this.nodes[targetNode.id].count >= 9) {
+                        targetNode.set("color", "red");
+                    }
                 }
             });
         }
@@ -103,6 +123,9 @@ var UmlBuilder = (function () {
             property.name
         ].join(" ");
     };
+    UmlBuilder.prototype.getGraphNodeId = function (path, name) {
+        return ((path ? path + "/" : "") + name).replace(/\//g, "|");
+    };
     UmlBuilder.visibilityToString = function (visibility) {
         switch (visibility) {
             case ts_elements_1.Visibility.Public:
@@ -115,9 +138,6 @@ var UmlBuilder = (function () {
     };
     UmlBuilder.lifetimeToString = function (lifetime) {
         return lifetime === ts_elements_1.Lifetime.Static ? "\\<static\\>" : "";
-    };
-    UmlBuilder.prototype.getGraphNodeId = function (path, name) {
-        return ((path ? path + "/" : "") + name).replace(/\//g, "|");
     };
     return UmlBuilder;
 }());

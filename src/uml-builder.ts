@@ -3,38 +3,36 @@
 import * as graphviz from "graphviz";
 import { Element, Module, Class, Method, Property, Visibility, QualifiedName, Lifetime } from "./ts-elements";
 import { Collections } from "./extensions";
+import { DiagramOutputType } from "./diagramOutputType";
 
 const FONT_SIZE_KEY = "fontsize";
 const FONT_SIZE = 12;
 const FONT_NAME_KEY = "fontname";
 const FONT_NAME = "Verdana";
-
-export enum DiagramOutputType {
-    SVG,
-    PNG
-}
+const LAYOUT_KEY = "layout";
+const LAYOUT_TYPE = "sfdp";
+const OVERLAP_KEY = "overlap";
+const OVERLAP_TYPE = "scale";
 
 export class UmlBuilder {
     private graph: graphviz.Graph;
-    private outputType: DiagramOutputType;
-
-    public constructor(outputType: DiagramOutputType) {
-        // set diagram default styles
-        this.graph = graphviz.digraph("G");
-        this.graph.set(FONT_SIZE_KEY, FONT_SIZE);
-        // this.graph.set("pack", false);
-        this.graph.set("layout", "sfdp");
-        this.graph.set("overlap", "scale");
-        this.graph.set(FONT_NAME_KEY, FONT_NAME);
-        this.graph.setEdgeAttribut(FONT_SIZE_KEY, FONT_SIZE);
-        this.graph.setEdgeAttribut(FONT_NAME_KEY, FONT_NAME);
-        this.graph.setNodeAttribut(FONT_SIZE_KEY, FONT_SIZE);
-        this.graph.setNodeAttribut(FONT_NAME_KEY, FONT_NAME);
-        this.graph.setNodeAttribut("shape", "record");
-        this.outputType = outputType;
+    private nodes: {
+        [id: string]: {
+            count: number,
+            node: graphviz.Node
+        }
     }
 
-    public build(modules: Module[], outputFilename: string, dependenciesOnly: boolean) {
+    public constructor(
+        private outputType: DiagramOutputType,
+        private modulesToIgnore: string[],
+        private dependenciesToIgnore: string[]) {
+
+        this.nodes = {};
+        this.initialiseGraphSettings()
+    }
+
+    public outputUmlDiagram(modules: Module[], outputFilename: string, dependenciesOnly: boolean) {
         modules.forEach(module => {
             this.buildModule(module, this.graph, module.path, 0, dependenciesOnly);
         });
@@ -46,12 +44,22 @@ export class UmlBuilder {
             }
         }
 
+        // console.log(this.nodes);
         // Generate a PNG/SVG output
-        this.graph.output({
-            type: DiagramOutputType[this.outputType].toLowerCase()//,
-            // use: "circo"
-            // use: "sfdp"
-        } as graphviz.RenderOptions, outputFilename);
+        this.graph.output(DiagramOutputType[this.outputType].toLowerCase(), outputFilename);
+    }
+
+    private initialiseGraphSettings() {
+        this.graph = graphviz.digraph("G");
+        this.graph.set(LAYOUT_KEY, LAYOUT_TYPE);
+        this.graph.set(OVERLAP_KEY, OVERLAP_TYPE);
+        this.graph.set(FONT_SIZE_KEY, FONT_SIZE);
+        this.graph.set(FONT_NAME_KEY, FONT_NAME);
+        this.graph.setEdgeAttribut(FONT_SIZE_KEY, FONT_SIZE);
+        this.graph.setEdgeAttribut(FONT_NAME_KEY, FONT_NAME);
+        this.graph.setNodeAttribut(FONT_SIZE_KEY, FONT_SIZE);
+        this.graph.setNodeAttribut(FONT_NAME_KEY, FONT_NAME);
+        this.graph.setNodeAttribut("shape", "record");
     }
 
     private buildModule(module: Module, graph: graphviz.Graph, path: string, level: number, dependenciesOnly: boolean) {
@@ -61,13 +69,27 @@ export class UmlBuilder {
         let cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
 
         cluster.set("label", (module.visibility !== Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
-        // cluster.set("style", "filled");
-        // cluster.set("color", "gray" + Math.max(40, (95 - (level * 6))));
+        cluster.set("style", "filled");
+        cluster.set("color", "gray" + Math.max(40, (95 - (level * 6))));
 
         if (dependenciesOnly) {
             Collections.distinct(module.dependencies, d => d.name).forEach(d => {
                 if (d.name[0] !== "@" && module.name !== "app.module" && d.name !== "three" && d.name !== "inversify") {
-                    graph.addEdge(module.name, this.getGraphNodeId("", d.name));
+                    const edge = graph.addEdge(module.name, this.getGraphNodeId("", d.name));
+                    const targetNode = (edge as any).nodeTwo;
+                    if (!this.nodes[targetNode.id]) {
+                        this.nodes[targetNode.id] = {
+                            node: targetNode, count: 0
+                        };
+                    }
+                    this.nodes[targetNode.id].count++;
+                    if (this.nodes[targetNode.id].count >= 5) {
+                        targetNode.set("color", "orange");
+                        targetNode.set("style", "filled");
+                    }
+                    if (this.nodes[targetNode.id].count >= 9) {
+                        targetNode.set("color", "red");
+                    }
                 }
             });
         } else {
@@ -138,6 +160,10 @@ export class UmlBuilder {
         ].join(" ");
     }
 
+    private getGraphNodeId(path: string, name: string): string {
+        return ((path ? path + "/" : "") + name).replace(/\//g, "|");
+    }
+
     private static visibilityToString(visibility: Visibility) {
         switch (visibility) {
             case Visibility.Public:
@@ -151,9 +177,5 @@ export class UmlBuilder {
 
     private static lifetimeToString(lifetime: Lifetime) {
         return lifetime === Lifetime.Static ? "\\<static\\>" : "";
-    }
-
-    private getGraphNodeId(path: string, name: string): string {
-        return ((path ? path + "/" : "") + name).replace(/\//g, "|");
     }
 }

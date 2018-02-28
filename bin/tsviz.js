@@ -3,6 +3,7 @@ var fs_1 = require("fs");
 var ts = require("typescript");
 var ts_analyser_1 = require("./ts-analyser");
 var uml_builder_1 = require("./uml-builder");
+var diagramOutputType_1 = require("./diagramOutputType");
 var DEFAULT_COMPILER_OPTIONS = {
     noEmitOnError: true,
     noImplicitAny: true,
@@ -74,7 +75,7 @@ exports.Parser = Parser;
 function createGraph(targetPath, outputFilename, dependenciesOnly, recursive, svgOutput) {
     var visualiser = new Parser(recursive);
     var modules = visualiser.getModules(targetPath);
-    var umlBuilder = new uml_builder_1.UmlBuilder(svgOutput ? uml_builder_1.DiagramOutputType.SVG : uml_builder_1.DiagramOutputType.PNG);
-    umlBuilder.build(modules, outputFilename, dependenciesOnly);
+    var umlBuilder = new uml_builder_1.UmlBuilder(svgOutput ? diagramOutputType_1.DiagramOutputType.SVG : diagramOutputType_1.DiagramOutputType.PNG, [], []);
+    umlBuilder.outputUmlDiagram(modules, outputFilename, dependenciesOnly);
 }
 exports.createGraph = createGraph;
