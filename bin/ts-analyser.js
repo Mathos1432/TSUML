@@ -3,38 +3,44 @@ var ts = require("typescript");
 var path = require("path");
 var ts_elements_1 = require("./ts-elements");
 var extensions_1 = require("./extensions");
-function collectInformation(program, sourceFile) {
-    var typeChecker = program.getTypeChecker();
-    var filename = sourceFile.fileName;
-    filename = filename.substr(0, filename.lastIndexOf("."));
-    var moduleName = path.basename(filename);
-    var module = new ts_elements_1.Module(moduleName, null);
-    module.path = path.dirname(filename);
-    analyseNode(sourceFile, module);
-    function analyseNode(node, currentElement) {
+var Analyser = (function () {
+    function Analyser(program) {
+        this.typeChecker = program.getTypeChecker();
+    }
+    Analyser.prototype.collectInformation = function (sourceFile) {
+        var filename = sourceFile.fileName;
+        filename = filename.substr(0, filename.lastIndexOf("."));
+        var moduleName = path.basename(filename);
+        var module = new ts_elements_1.Module(moduleName, null);
+        module.path = path.dirname(filename);
+        this.analyseNode(sourceFile, module);
+        return module;
+    };
+    Analyser.prototype.analyseNode = function (currentNode, currentElement) {
+        var _this = this;
         var childElement;
         var skipChildren = false;
-        switch (node.kind) {
+        switch (currentNode.kind) {
             case 221:
-                var moduleDeclaration = node;
-                childElement = new ts_elements_1.Module(moduleDeclaration.name.text, currentElement, getVisibility(node));
+                var moduleDeclaration = currentNode;
+                childElement = new ts_elements_1.Module(moduleDeclaration.name.text, currentElement, this.getVisibility(currentNode));
                 break;
             case 224:
-                var importEqualDeclaration = node;
+                var importEqualDeclaration = currentNode;
                 childElement = new ts_elements_1.ImportedModule(importEqualDeclaration.name.text, currentElement);
                 break;
             case 225:
-                var importDeclaration = node;
-                var moduleName_1 = importDeclaration.moduleSpecifier.text;
-                childElement = new ts_elements_1.ImportedModule(moduleName_1, currentElement);
+                var importDeclaration = currentNode;
+                var moduleName = importDeclaration.moduleSpecifier.text;
+                childElement = new ts_elements_1.ImportedModule(moduleName, currentElement);
                 break;
             case 217:
-                var classDeclaration = node;
-                var classDef = new ts_elements_1.Class(classDeclaration.name.text, currentElement, getVisibility(node));
+                var classDeclaration = currentNode;
+                var classDef = new ts_elements_1.Class(classDeclaration.name.text, currentElement, this.getVisibility(currentNode));
                 if (classDeclaration.heritageClauses) {
                     var extendsClause = extensions_1.Collections.firstOrDefault(classDeclaration.heritageClauses, function (c) { return c.token === 83; });
                     if (extendsClause && extendsClause.types.length > 0) {
-                        classDef.extends = getFullyQualifiedName(extendsClause.types[0]);
+                        classDef.extends = this.getFullyQualifiedName(extendsClause.types[0]);
                     }
                 }
                 childElement = classDef;
@@ -42,9 +48,9 @@ function collectInformation(program, sourceFile) {
             case 146:
             case 147:
             case 142:
-                var propertyDeclaration = node;
-                var property = new ts_elements_1.Property(propertyDeclaration.name.text, currentElement, getVisibility(node), getLifetime(node));
-                switch (node.kind) {
+                var propertyDeclaration = currentNode;
+                var property = new ts_elements_1.Property(propertyDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
+                switch (currentNode.kind) {
                     case 146:
                         property.hasGetter = true;
                         break;
@@ -56,8 +62,8 @@ function collectInformation(program, sourceFile) {
                 break;
             case 144:
             case 216:
-                var functionDeclaration = node;
-                childElement = new ts_elements_1.Method(functionDeclaration.name.text, currentElement, getVisibility(node), getLifetime(node));
+                var functionDeclaration = currentNode;
+                childElement = new ts_elements_1.Method(functionDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
                 skipChildren = true;
                 break;
         }
@@ -67,40 +73,40 @@ function collectInformation(program, sourceFile) {
         if (skipChildren) {
             return;
         }
-        ts.forEachChild(node, function (node) { return analyseNode(node, childElement || currentElement); });
-    }
-    function getFullyQualifiedName(expression) {
-        var symbol = typeChecker.getSymbolAtLocation(expression.expression);
+        ts.forEachChild(currentNode, function (node) { return _this.analyseNode(node, childElement || currentElement); });
+    };
+    Analyser.prototype.getFullyQualifiedName = function (expression) {
+        var symbol = this.typeChecker.getSymbolAtLocation(expression.expression);
         if (symbol) {
-            var nameParts = typeChecker.getFullyQualifiedName(symbol).split(".");
+            var nameParts = this.typeChecker.getFullyQualifiedName(symbol).split(".");
             if (symbol.declarations.length > 0 && symbol.declarations[0].kind === 229) {
                 var importSpecifier = symbol.declarations[0];
-                var moduleName_2 = importSpecifier.parent.parent.parent.moduleSpecifier.text;
-                nameParts.unshift(moduleName_2);
+                var moduleName = importSpecifier.parent.parent.parent.moduleSpecifier.text;
+                nameParts.unshift(moduleName);
             }
             else {
                 if (nameParts.length > 0 && nameParts[0].indexOf("\"") === 0) {
-                    var moduleName_3 = nameParts[0].replace(/\"/g, "");
-                    nameParts[0] = moduleName_3;
+                    var moduleName = nameParts[0].replace(/\"/g, "");
+                    nameParts[0] = moduleName;
                 }
             }
             return new ts_elements_1.QualifiedName(nameParts);
         }
         console.warn("Unable to resolve type: '" + expression.getText() + "'");
         return new ts_elements_1.QualifiedName(["unknown?"]);
-    }
-    function getVisibility(node) {
+    };
+    Analyser.prototype.getVisibility = function (node) {
         if (node.modifiers) {
-            if (hasModifierSet(node.modifiers.flags, 64)) {
+            if (this.hasModifierSet(node.modifiers.flags, 64)) {
                 return ts_elements_1.Visibility.Protected;
             }
-            else if (hasModifierSet(node.modifiers.flags, 32)) {
+            else if (this.hasModifierSet(node.modifiers.flags, 32)) {
                 return ts_elements_1.Visibility.Private;
             }
-            else if (hasModifierSet(node.modifiers.flags, 16)) {
+            else if (this.hasModifierSet(node.modifiers.flags, 16)) {
                 return ts_elements_1.Visibility.Public;
             }
-            else if (hasModifierSet(node.modifiers.flags, 1)) {
+            else if (this.hasModifierSet(node.modifiers.flags, 1)) {
                 return ts_elements_1.Visibility.Public;
             }
         }
@@ -111,18 +117,18 @@ function collectInformation(program, sourceFile) {
                 return ts_elements_1.Visibility.Private;
         }
         return ts_elements_1.Visibility.Private;
-    }
-    function getLifetime(node) {
+    };
+    Analyser.prototype.getLifetime = function (node) {
         if (node.modifiers) {
-            if (hasModifierSet(node.modifiers.flags, 128)) {
+            if (this.hasModifierSet(node.modifiers.flags, 128)) {
                 return ts_elements_1.Lifetime.Static;
             }
         }
         return ts_elements_1.Lifetime.Instance;
-    }
-    function hasModifierSet(value, modifier) {
+    };
+    Analyser.prototype.hasModifierSet = function (value, modifier) {
         return (value & modifier) === modifier;
-    }
-    return module;
-}
-exports.collectInformation = collectInformation;
+    };
+    return Analyser;
+}());
+exports.Analyser = Analyser;

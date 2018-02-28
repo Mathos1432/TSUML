@@ -3,7 +3,7 @@
 import { readdirSync, lstatSync, existsSync, statSync } from "fs";
 import * as ts from "typescript";
 import { Module } from "./ts-elements";
-import * as analyser from "./ts-analyser";
+import { Analyser } from "./ts-analyser";
 import { UmlBuilder, DiagramOutputType } from "./uml-builder";
 
 const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
@@ -71,9 +71,10 @@ export class Parser {
         const setParentNodes = true;
         let compilerHost = ts.createCompilerHost(DEFAULT_COMPILER_OPTIONS, setParentNodes);
         let program = ts.createProgram(fileNames, DEFAULT_COMPILER_OPTIONS, compilerHost);
+        const analyser = new Analyser(program);
         let modules = program.getSourceFiles()
             .filter(f => f.fileName.lastIndexOf(".d.ts") !== f.fileName.length - ".d.ts".length)
-            .map(sourceFile => analyser.collectInformation(program, sourceFile));
+            .map(sourceFile => analyser.collectInformation(sourceFile));
 
         // go back to the original dir
         process.chdir(originalDir);

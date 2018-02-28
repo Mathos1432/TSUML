@@ -22,7 +22,9 @@ export class UmlBuilder {
         // set diagram default styles
         this.graph = graphviz.digraph("G");
         this.graph.set(FONT_SIZE_KEY, FONT_SIZE);
-        this.graph.set("pack", false);
+        // this.graph.set("pack", false);
+        this.graph.set("layout", "sfdp");
+        this.graph.set("overlap", "scale");
         this.graph.set(FONT_NAME_KEY, FONT_NAME);
         this.graph.setEdgeAttribut(FONT_SIZE_KEY, FONT_SIZE);
         this.graph.setEdgeAttribut(FONT_NAME_KEY, FONT_NAME);
@@ -46,8 +48,9 @@ export class UmlBuilder {
 
         // Generate a PNG/SVG output
         this.graph.output({
-            type: DiagramOutputType[this.outputType].toLowerCase(),
-            use: "sfdp"
+            type: DiagramOutputType[this.outputType].toLowerCase()//,
+            // use: "circo"
+            // use: "sfdp"
         } as graphviz.RenderOptions, outputFilename);
     }
 
@@ -63,7 +66,9 @@ export class UmlBuilder {
 
         if (dependenciesOnly) {
             Collections.distinct(module.dependencies, d => d.name).forEach(d => {
-                graph.addEdge(module.name, this.getGraphNodeId("", d.name));
+                if (d.name[0] !== "@" && module.name !== "app.module" && d.name !== "three" && d.name !== "inversify") {
+                    graph.addEdge(module.name, this.getGraphNodeId("", d.name));
+                }
             });
         } else {
             let moduleMethods = this.combineSignatures(module.methods, this.getMethodSignature);
@@ -77,7 +82,7 @@ export class UmlBuilder {
             }
 
             module.modules.forEach(childModule => {
-                this.buildModule(childModule, cluster, moduleId, level + 1, false);
+                this.buildModule(childModule, cluster, moduleId, level + 1, dependenciesOnly);
             });
 
             module.classes.forEach(childClass => {
@@ -86,11 +91,11 @@ export class UmlBuilder {
         }
     }
 
-    private buildClass(classDef: Class, g: graphviz.Graph, path: string) {
+    private buildClass(classDef: Class, graph: graphviz.Graph, path: string) {
         let methodsSignatures = this.combineSignatures(classDef.methods, this.getMethodSignature);
         let propertiesSignatures = this.combineSignatures(classDef.properties, this.getPropertySignature);
 
-        let classNode = g.addNode(
+        let classNode = graph.addNode(
             this.getGraphNodeId(path, classDef.name),
             {
                 "label": "{" + [classDef.name, methodsSignatures, propertiesSignatures].filter(e => e.length > 0).join("|") + "}"
@@ -98,11 +103,13 @@ export class UmlBuilder {
 
         if (classDef.extends) {
             // add inheritance arrow
-            g.addEdge(
+            graph.addEdge(
                 classNode,
                 classDef.extends.parts.reduce((path, name) => this.getGraphNodeId(path, name), ""),
-                { "arrowhead": "onormal" });
+                { "arrowhead": "onormal" }
+            );
         }
+
     }
 
     private combineSignatures<T extends Element>(elements: T[], map: (e: T) => string): string {
@@ -120,8 +127,7 @@ export class UmlBuilder {
     }
 
     private getPropertySignature(property: Property): string {
-        return
-        [
+        return [
             this.visibilityToString(property.visibility),
             this.lifetimeToString(property.lifetime),
             [

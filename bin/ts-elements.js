@@ -42,10 +42,13 @@ var Element = (function () {
         this._parent = _parent;
         this._visibility = _visibility;
         this._lifetime = _lifetime;
-        this._name = _name.replace('../', '').replace('./', '');
-        if (this._name.indexOf('angular') === -1)
+        this._name = this._name.replace('../', '').replace('./', '');
+        if (this._name[0] == '.') {
+            this._name = this._name.substr(1);
+        }
+        if (this._name.indexOf('angular') === -1) {
             this._name = this._name.substring(this._name.lastIndexOf('/') + 1);
-        console.log(this._name);
+        }
     }
     Object.defineProperty(Element.prototype, "name", {
         get: function () {

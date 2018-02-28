@@ -1,7 +1,7 @@
 "use strict";
 var fs_1 = require("fs");
 var ts = require("typescript");
-var analyser = require("./ts-analyser");
+var ts_analyser_1 = require("./ts-analyser");
 var uml_builder_1 = require("./uml-builder");
 var DEFAULT_COMPILER_OPTIONS = {
     noEmitOnError: true,
@@ -60,9 +60,10 @@ var Parser = (function () {
         var setParentNodes = true;
         var compilerHost = ts.createCompilerHost(DEFAULT_COMPILER_OPTIONS, setParentNodes);
         var program = ts.createProgram(fileNames, DEFAULT_COMPILER_OPTIONS, compilerHost);
+        var analyser = new ts_analyser_1.Analyser(program);
         var modules = program.getSourceFiles()
             .filter(function (f) { return f.fileName.lastIndexOf(".d.ts") !== f.fileName.length - ".d.ts".length; })
-            .map(function (sourceFile) { return analyser.collectInformation(program, sourceFile); });
+            .map(function (sourceFile) { return analyser.collectInformation(sourceFile); });
         process.chdir(originalDir);
         console.log("Found " + modules.length + " module(s)");
         return modules;

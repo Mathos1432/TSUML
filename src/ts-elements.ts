@@ -30,10 +30,15 @@ export class QualifiedName {
 
 export abstract class Element {
     constructor(private _name: string, private _parent: Element, private _visibility: Visibility = Visibility.Public, private _lifetime: Lifetime = Lifetime.Instance) {
-        this._name = _name.replace('../', '').replace('./', '');
-        if (this._name.indexOf('angular') === -1)
+        // TODO: Move this somewhere else.
+        // This is done to regroup modules with the same name.
+        this._name = this._name.replace('../', '').replace('./', '');
+        if (this._name[0] == '.') {
+            this._name = this._name.substr(1);
+        }
+        if (this._name.indexOf('angular') === -1) {
             this._name = this._name.substring(this._name.lastIndexOf('/') + 1);
-        console.log(this._name);
+        }
     }
 
     public get name(): string {
