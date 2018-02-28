@@ -1,26 +1,20 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var Visibility;
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 (function (Visibility) {
     Visibility[Visibility["Private"] = 0] = "Private";
     Visibility[Visibility["Public"] = 1] = "Public";
     Visibility[Visibility["Protected"] = 2] = "Protected";
-})(Visibility = exports.Visibility || (exports.Visibility = {}));
-var Lifetime;
+})(exports.Visibility || (exports.Visibility = {}));
+var Visibility = exports.Visibility;
 (function (Lifetime) {
     Lifetime[Lifetime["Static"] = 0] = "Static";
     Lifetime[Lifetime["Instance"] = 1] = "Instance";
-})(Lifetime = exports.Lifetime || (exports.Lifetime = {}));
+})(exports.Lifetime || (exports.Lifetime = {}));
+var Lifetime = exports.Lifetime;
 var ModuleTypeName = "";
 var ClassTypeName = "";
 var MethodTypeName = "";
@@ -89,12 +83,11 @@ exports.Element = Element;
 var Module = (function (_super) {
     __extends(Module, _super);
     function Module() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this._classes = new Array();
-        _this._modules = new Array();
-        _this._dependencies = new Array();
-        _this._methods = new Array();
-        return _this;
+        _super.apply(this, arguments);
+        this._classes = new Array();
+        this._modules = new Array();
+        this._dependencies = new Array();
+        this._methods = new Array();
     }
     Object.defineProperty(Module.prototype, "classes", {
         get: function () {
@@ -153,10 +146,9 @@ exports.Module = Module;
 var Class = (function (_super) {
     __extends(Class, _super);
     function Class() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this._methods = new Array();
-        _this._properties = {};
-        return _this;
+        _super.apply(this, arguments);
+        this._methods = new Array();
+        this._properties = {};
     }
     Object.defineProperty(Class.prototype, "methods", {
         get: function () {
@@ -214,7 +206,7 @@ exports.Class = Class;
 var Method = (function (_super) {
     __extends(Method, _super);
     function Method() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        _super.apply(this, arguments);
     }
     return Method;
 }(Element));
@@ -222,7 +214,7 @@ exports.Method = Method;
 var ImportedModule = (function (_super) {
     __extends(ImportedModule, _super);
     function ImportedModule() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        _super.apply(this, arguments);
     }
     return ImportedModule;
 }(Element));
@@ -230,7 +222,7 @@ exports.ImportedModule = ImportedModule;
 var Property = (function (_super) {
     __extends(Property, _super);
     function Property() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        _super.apply(this, arguments);
     }
     Object.defineProperty(Property.prototype, "hasGetter", {
         get: function () {

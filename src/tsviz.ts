@@ -4,7 +4,7 @@ import { readdirSync, lstatSync, existsSync, statSync } from "fs";
 import * as ts from "typescript";
 import { Module } from "./ts-elements";
 import * as analyser from "./ts-analyser";
-import * as umlBuilder from "./uml-builder";
+import { UmlBuilder, DiagramOutputType } from "./uml-builder";
 
 const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
     noEmitOnError: true,
@@ -50,11 +50,10 @@ export class Parser {
     }
 
     private getFiles(targetPath: string): string[] {
-        const fileNames: string[] = new Array<string>();
-
+        let fileNames: string[] = new Array<string>();
         if (existsSync(targetPath)) {
             if (lstatSync(targetPath).isDirectory()) {
-                fileNames.concat(this.walk(targetPath));
+                fileNames = fileNames.concat(this.walk(targetPath));
             } else {
                 fileNames.push(targetPath);
             }
@@ -68,7 +67,6 @@ export class Parser {
     public getModules(targetPath: string): Module[] {
         let originalDir = process.cwd();
         let fileNames = this.getFiles(targetPath);
-
         // analyse sources
         const setParentNodes = true;
         let compilerHost = ts.createCompilerHost(DEFAULT_COMPILER_OPTIONS, setParentNodes);
@@ -89,5 +87,6 @@ export class Parser {
 export function createGraph(targetPath: string, outputFilename: string, dependenciesOnly: boolean, recursive: boolean, svgOutput: boolean) {
     const visualiser = new Parser(recursive);
     const modules = visualiser.getModules(targetPath);
-    umlBuilder.buildUml(modules, outputFilename, dependenciesOnly, svgOutput);
+    const umlBuilder = new UmlBuilder(svgOutput ? DiagramOutputType.SVG : DiagramOutputType.PNG);
+    umlBuilder.build(modules, outputFilename, dependenciesOnly);
 }

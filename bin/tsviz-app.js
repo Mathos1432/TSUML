@@ -1,5 +1,4 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var tsviz = require("./tsviz");
 function main(args) {
     var switches = args.filter(function (a) { return a.indexOf("-") === 0; });

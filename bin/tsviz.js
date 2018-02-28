@@ -1,64 +1,65 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = require("fs");
 var ts = require("typescript");
 var analyser = require("./ts-analyser");
-var umlBuilder = require("./uml-builder");
-var Visualizer = (function () {
-    function Visualizer(isRecursive) {
+var uml_builder_1 = require("./uml-builder");
+var DEFAULT_COMPILER_OPTIONS = {
+    noEmitOnError: true,
+    noImplicitAny: true,
+    target: 1,
+    module: 2
+};
+var Parser = (function () {
+    function Parser(isRecursive) {
         if (isRecursive === void 0) { isRecursive = false; }
         this.isRecursive = isRecursive;
         this.results = new Array();
-        this.i = 0;
+        this.currentFileIndex = 0;
     }
-    Visualizer.prototype.walk = function (dir) {
-        this.list = fs_1.readdirSync(dir);
-        this.next(dir);
+    Parser.prototype.walk = function (currentDirectory) {
+        this.filesInCurrentDirectory = fs_1.readdirSync(currentDirectory);
+        this.next(currentDirectory);
         return this.results;
     };
-    Visualizer.prototype.next = function (dir) {
-        var file = this.list[this.i++];
-        if (!file) {
+    Parser.prototype.next = function (currentDirectory) {
+        var currentFile = this.filesInCurrentDirectory[this.currentFileIndex++];
+        if (!currentFile) {
             return this.results;
         }
-        file = dir + '/' + file;
-        var stat = fs_1.statSync(file);
+        currentFile = currentDirectory + '/' + currentFile;
+        var stat = fs_1.statSync(currentFile);
         if (stat && stat.isDirectory()) {
             if (this.isRecursive) {
-                this.results.concat(this.walk(file));
-                this.next(dir);
+                this.results.concat(this.walk(currentFile));
+                this.next(currentDirectory);
             }
         }
         else {
-            this.results.push(file);
-            this.next(dir);
+            this.results.push(currentFile);
+            this.next(currentDirectory);
         }
     };
-    Visualizer.prototype.getFiles = function (targetPath) {
-        if (!fs_1.existsSync(targetPath)) {
-            console.error("'" + targetPath + "' does not exist");
-            return [];
-        }
-        var fileNames;
-        if (fs_1.lstatSync(targetPath).isDirectory()) {
-            fileNames = this.walk(targetPath);
+    Parser.prototype.getFiles = function (targetPath) {
+        var fileNames = new Array();
+        if (fs_1.existsSync(targetPath)) {
+            if (fs_1.lstatSync(targetPath).isDirectory()) {
+                fileNames = fileNames.concat(this.walk(targetPath));
+            }
+            else {
+                fileNames.push(targetPath);
+            }
         }
         else {
-            fileNames = [targetPath];
+            console.error("'" + targetPath + "' does not exist");
         }
         return fileNames;
     };
-    Visualizer.prototype.getModules = function (targetPath) {
+    Parser.prototype.getModules = function (targetPath) {
         var originalDir = process.cwd();
         var fileNames = this.getFiles(targetPath);
-        var compilerOptions = {
-            noEmitOnError: true,
-            noImplicitAny: true,
-            target: 1,
-            module: 2
-        };
-        var compilerHost = ts.createCompilerHost(compilerOptions, true);
-        var program = ts.createProgram(fileNames, compilerOptions, compilerHost);
+        var setParentNodes = true;
+        var compilerHost = ts.createCompilerHost(DEFAULT_COMPILER_OPTIONS, setParentNodes);
+        var program = ts.createProgram(fileNames, DEFAULT_COMPILER_OPTIONS, compilerHost);
         var modules = program.getSourceFiles()
             .filter(function (f) { return f.fileName.lastIndexOf(".d.ts") !== f.fileName.length - ".d.ts".length; })
             .map(function (sourceFile) { return analyser.collectInformation(program, sourceFile); });
@@ -66,12 +67,13 @@ var Visualizer = (function () {
         console.log("Found " + modules.length + " module(s)");
         return modules;
     };
-    return Visualizer;
+    return Parser;
 }());
-exports.Visualizer = Visualizer;
+exports.Parser = Parser;
 function createGraph(targetPath, outputFilename, dependenciesOnly, recursive, svgOutput) {
-    var visualiser = new Visualizer(recursive);
+    var visualiser = new Parser(recursive);
     var modules = visualiser.getModules(targetPath);
-    umlBuilder.buildUml(modules, outputFilename, dependenciesOnly, svgOutput);
+    var umlBuilder = new uml_builder_1.UmlBuilder(svgOutput ? uml_builder_1.DiagramOutputType.SVG : uml_builder_1.DiagramOutputType.PNG);
+    umlBuilder.build(modules, outputFilename, dependenciesOnly);
 }
 exports.createGraph = createGraph;
