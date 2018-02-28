@@ -3,98 +3,91 @@
 import { readdirSync, lstatSync, existsSync, statSync } from "fs";
 import * as ts from "typescript";
 import { Module } from "./ts-elements";
-import * as analyser from "./ts-analyser"; 
+import * as analyser from "./ts-analyser";
 import * as umlBuilder from "./uml-builder";
 
-export interface OutputModule {
-	name: string;
-	dependencies: string[];
-}
+const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
+    noEmitOnError: true,
+    noImplicitAny: true,
+    target: ts.ScriptTarget.ES5,
+    module: ts.ModuleKind.AMD
+};
 
-function walk(dir: string, recursive: boolean): string[] {
-    /* Source: http://stackoverflow.com/a/5827895 */
-    let results: string[] = [];
-    let list = readdirSync(dir);
+export class Parser {
+    private results: string[];
+    private currentFileIndex: number;
+    private filesInCurrentDirectory: string[];
 
-    let i = 0;
-    (function next() {
-        let file = list[i++];
-        if (!file) {
-            return results;
+    public constructor(private isRecursive: boolean = false) {
+        this.results = new Array<string>();
+        this.currentFileIndex = 0;
+    }
+
+    private walk(currentDirectory: string): string[] {
+        /* Source: http://stackoverflow.com/a/5827895 */
+        this.filesInCurrentDirectory = readdirSync(currentDirectory);
+        this.next(currentDirectory);
+        return this.results;
+    }
+
+    private next(currentDirectory: string): string[] {
+        let currentFile = this.filesInCurrentDirectory[this.currentFileIndex++];
+        if (!currentFile) {
+            return this.results;
         }
-        file = dir + '/' + file;
-        let stat = statSync(file);
+        currentFile = currentDirectory + '/' + currentFile;
+        let stat = statSync(currentFile);
+
         if (stat && stat.isDirectory()) {
-            if (recursive) {
-                results = results.concat(walk(file, recursive));
-                next();
+            if (this.isRecursive) {
+                this.results.concat(this.walk(currentFile));
+                this.next(currentDirectory);
             }
         } else {
-            results.push(file);
-            next();
+            this.results.push(currentFile);
+            this.next(currentDirectory);
         }
-    })();
-
-    return results;
-}
-
-function getFiles(targetPath: string, recursive: boolean): string[] {
-    if (!existsSync(targetPath)) {
-        console.error("'" + targetPath + "' does not exist");
-        return [];
     }
 
-    let fileNames: string[];
-    if (lstatSync(targetPath).isDirectory()) {
-        fileNames = walk(targetPath, recursive);
-    } else {
-        fileNames = [targetPath];
+    private getFiles(targetPath: string): string[] {
+        const fileNames: string[] = new Array<string>();
+
+        if (existsSync(targetPath)) {
+            if (lstatSync(targetPath).isDirectory()) {
+                fileNames.concat(this.walk(targetPath));
+            } else {
+                fileNames.push(targetPath);
+            }
+        } else {
+            console.error("'" + targetPath + "' does not exist");
+        }
+
+        return fileNames;
     }
 
-    return fileNames;
-}
+    public getModules(targetPath: string): Module[] {
+        let originalDir = process.cwd();
+        let fileNames = this.getFiles(targetPath);
 
-function getModules(targetPath: string, recursive: boolean): Module[] {
-    let originalDir = process.cwd();
-    let fileNames = getFiles(targetPath, recursive);
-    const compilerOptions: ts.CompilerOptions = {
-        noEmitOnError: true, 
-        noImplicitAny: true,
-        target: ts.ScriptTarget.ES5, 
-        module: ts.ModuleKind.AMD
-    };
+        // analyse sources
+        const setParentNodes = true;
+        let compilerHost = ts.createCompilerHost(DEFAULT_COMPILER_OPTIONS, setParentNodes);
+        let program = ts.createProgram(fileNames, DEFAULT_COMPILER_OPTIONS, compilerHost);
+        let modules = program.getSourceFiles()
+            .filter(f => f.fileName.lastIndexOf(".d.ts") !== f.fileName.length - ".d.ts".length)
+            .map(sourceFile => analyser.collectInformation(program, sourceFile));
 
-    // analyse sources
-    let compilerHost = ts.createCompilerHost(compilerOptions, /*setParentNodes */ true);
-    let program = ts.createProgram(fileNames, compilerOptions, compilerHost);
-    let modules = program.getSourceFiles()
-        .filter(f => f.fileName.lastIndexOf(".d.ts") !== f.fileName.length - ".d.ts".length)
-        .map(sourceFile => analyser.collectInformation(program, sourceFile));
+        // go back to the original dir
+        process.chdir(originalDir);
 
-    process.chdir(originalDir); // go back to the original dir
-    
-    console.log("Found " + modules.length + " module(s)");
+        console.log("Found " + modules.length + " module(s)");
 
-    return modules;
+        return modules;
+    }
 }
 
 export function createGraph(targetPath: string, outputFilename: string, dependenciesOnly: boolean, recursive: boolean, svgOutput: boolean) {
-    let modules = getModules(targetPath, recursive);
+    const visualiser = new Parser(recursive);
+    const modules = visualiser.getModules(targetPath);
     umlBuilder.buildUml(modules, outputFilename, dependenciesOnly, svgOutput);
-}
-
-export function getModulesDependencies(targetPath: string, recursive: boolean): OutputModule[] {
-    let modules = getModules(targetPath, recursive);
-    let outputModules: OutputModule[] = [];
-    modules.sort((a, b) => a.name.localeCompare(b.name)).forEach(module => {
-        let uniqueDependencies: { [name: string]: string } = {};
-        module.dependencies.forEach(dependency => {
-            uniqueDependencies[dependency.name] = null;
-        });
-        outputModules.push({
-            name: module.name,
-            dependencies: Object.keys(uniqueDependencies).sort()
-        });
-    });
-    return outputModules;
 }
