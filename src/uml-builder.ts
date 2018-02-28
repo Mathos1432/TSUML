@@ -45,7 +45,6 @@ export class UmlBuilder {
         }
 
         // Generate a PNG/SVG output
-
         this.graph.output({
             type: DiagramOutputType[this.outputType].toLowerCase(),
             use: "sfdp"
@@ -116,18 +115,20 @@ export class UmlBuilder {
         return [
             this.visibilityToString(method.visibility),
             this.lifetimeToString(method.lifetime),
-            this.getName(method) + "()"
+            method.name + "()"
         ].join(" ");
     }
+
     private getPropertySignature(property: Property): string {
-        return [
+        return
+        [
             this.visibilityToString(property.visibility),
             this.lifetimeToString(property.lifetime),
             [
                 (property.hasGetter ? "get" : null),
                 (property.hasSetter ? "set" : null)
             ].filter(v => v !== null).join("/"),
-            this.getName(property)
+            property.name
         ].join(" ");
     }
 
@@ -146,12 +147,7 @@ export class UmlBuilder {
         return lifetime === Lifetime.Static ? "\\<static\\>" : "";
     }
 
-    private getName(element: Element) {
-        return element.name;
-    }
-
     private getGraphNodeId(path: string, name: string): string {
-        let result = ((path ? path + "/" : "") + name).replace(/\//g, "|");
-        return result;
+        return ((path ? path + "/" : "") + name).replace(/\//g, "|");
     }
 }

@@ -18,7 +18,6 @@ export function collectInformation(program: ts.Program, sourceFile: ts.SourceFil
     function analyseNode(node: ts.Node, currentElement: Element) {
         let childElement: Element;
         let skipChildren = false;
-
         switch (node.kind) {
             case ts.SyntaxKind.ModuleDeclaration:
                 let moduleDeclaration = <ts.ModuleDeclaration>node;

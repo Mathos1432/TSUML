@@ -37,7 +37,7 @@ var UmlBuilder = (function () {
         }
         this.graph.output({
             type: DiagramOutputType[this.outputType].toLowerCase(),
-            use: "sfdp"
+            use: "fdp"
         }, outputFilename);
     };
     UmlBuilder.prototype.buildModule = function (module, graph, path, level, dependenciesOnly) {

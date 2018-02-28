@@ -29,7 +29,12 @@ export class QualifiedName {
 }
 
 export abstract class Element {
-    constructor(private _name: string, private _parent: Element, private _visibility: Visibility = Visibility.Public, private _lifetime: Lifetime = Lifetime.Instance) { }
+    constructor(private _name: string, private _parent: Element, private _visibility: Visibility = Visibility.Public, private _lifetime: Lifetime = Lifetime.Instance) {
+        this._name = _name.replace('../', '').replace('./', '');
+        if (this._name.indexOf('angular') === -1)
+            this._name = this._name.substring(this._name.lastIndexOf('/') + 1);
+        console.log(this._name);
+    }
 
     public get name(): string {
         return this._name;
