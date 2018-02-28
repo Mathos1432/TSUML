@@ -8,7 +8,7 @@
     },
     "scripts": {
         "make": "cd ./src && tsc && cd ../",
-        "start": "npm run make && node ./bin/tsviz-main.js ../projet2/log2990-01/server -r -d ./diagram-server.png"
+        "start": "node ./bin/tsviz-main.js ../projet2/log2990-01/server -r -d ./diagram-server.png"
     },
     "preferGlobal": true,
     "repository": {

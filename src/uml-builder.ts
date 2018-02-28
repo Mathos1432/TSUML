@@ -60,7 +60,7 @@ export class UmlBuilder {
         let moduleId = this.getGraphNodeId(path, module.name);
         let cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
 
-        cluster.set("label", (module.visibility !== Visibility.Public ? this.visibilityToString(module.visibility) + " " : "") + module.name);
+        cluster.set("label", (module.visibility !== Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
         // cluster.set("style", "filled");
         // cluster.set("color", "gray" + Math.max(40, (95 - (level * 6))));
 
@@ -82,7 +82,7 @@ export class UmlBuilder {
             }
 
             module.modules.forEach(childModule => {
-                this.buildModule(childModule, cluster, moduleId, level + 1, dependenciesOnly);
+                this.buildModule(childModule, cluster, moduleId, level + 1, false);
             });
 
             module.classes.forEach(childClass => {
@@ -120,16 +120,16 @@ export class UmlBuilder {
 
     private getMethodSignature(method: Method): string {
         return [
-            this.visibilityToString(method.visibility),
-            this.lifetimeToString(method.lifetime),
+            UmlBuilder.visibilityToString(method.visibility),
+            UmlBuilder.lifetimeToString(method.lifetime),
             method.name + "()"
         ].join(" ");
     }
 
     private getPropertySignature(property: Property): string {
         return [
-            this.visibilityToString(property.visibility),
-            this.lifetimeToString(property.lifetime),
+            UmlBuilder.visibilityToString(property.visibility),
+            UmlBuilder.lifetimeToString(property.lifetime),
             [
                 (property.hasGetter ? "get" : null),
                 (property.hasSetter ? "set" : null)
@@ -138,7 +138,7 @@ export class UmlBuilder {
         ].join(" ");
     }
 
-    private visibilityToString(visibility: Visibility) {
+    private static visibilityToString(visibility: Visibility) {
         switch (visibility) {
             case Visibility.Public:
                 return "+";
@@ -149,7 +149,7 @@ export class UmlBuilder {
         }
     }
 
-    private lifetimeToString(lifetime: Lifetime) {
+    private static lifetimeToString(lifetime: Lifetime) {
         return lifetime === Lifetime.Static ? "\\<static\\>" : "";
     }
 

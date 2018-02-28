@@ -45,7 +45,7 @@ var UmlBuilder = (function () {
         var ModulePrefix = "cluster_";
         var moduleId = this.getGraphNodeId(path, module.name);
         var cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
-        cluster.set("label", (module.visibility !== ts_elements_1.Visibility.Public ? this.visibilityToString(module.visibility) + " " : "") + module.name);
+        cluster.set("label", (module.visibility !== ts_elements_1.Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
         if (dependenciesOnly) {
             extensions_1.Collections.distinct(module.dependencies, function (d) { return d.name; }).forEach(function (d) {
                 if (d.name[0] !== "@" && module.name !== "app.module" && d.name !== "three" && d.name !== "inversify") {
@@ -62,7 +62,7 @@ var UmlBuilder = (function () {
                 });
             }
             module.modules.forEach(function (childModule) {
-                _this.buildModule(childModule, cluster, moduleId, level + 1, dependenciesOnly);
+                _this.buildModule(childModule, cluster, moduleId, level + 1, false);
             });
             module.classes.forEach(function (childClass) {
                 _this.buildClass(childClass, cluster, moduleId);
@@ -87,15 +87,15 @@ var UmlBuilder = (function () {
     };
     UmlBuilder.prototype.getMethodSignature = function (method) {
         return [
-            this.visibilityToString(method.visibility),
-            this.lifetimeToString(method.lifetime),
+            UmlBuilder.visibilityToString(method.visibility),
+            UmlBuilder.lifetimeToString(method.lifetime),
             method.name + "()"
         ].join(" ");
     };
     UmlBuilder.prototype.getPropertySignature = function (property) {
         return [
-            this.visibilityToString(property.visibility),
-            this.lifetimeToString(property.lifetime),
+            UmlBuilder.visibilityToString(property.visibility),
+            UmlBuilder.lifetimeToString(property.lifetime),
             [
                 (property.hasGetter ? "get" : null),
                 (property.hasSetter ? "set" : null)
@@ -103,7 +103,7 @@ var UmlBuilder = (function () {
             property.name
         ].join(" ");
     };
-    UmlBuilder.prototype.visibilityToString = function (visibility) {
+    UmlBuilder.visibilityToString = function (visibility) {
         switch (visibility) {
             case ts_elements_1.Visibility.Public:
                 return "+";
@@ -113,7 +113,7 @@ var UmlBuilder = (function () {
                 return "-";
         }
     };
-    UmlBuilder.prototype.lifetimeToString = function (lifetime) {
+    UmlBuilder.lifetimeToString = function (lifetime) {
         return lifetime === ts_elements_1.Lifetime.Static ? "\\<static\\>" : "";
     };
     UmlBuilder.prototype.getGraphNodeId = function (path, name) {
