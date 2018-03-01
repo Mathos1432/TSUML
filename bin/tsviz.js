@@ -75,7 +75,7 @@ exports.Parser = Parser;
 function createGraph(targetPath, outputFilename, dependenciesOnly, recursive, svgOutput) {
     var visualiser = new Parser(recursive);
     var modules = visualiser.getModules(targetPath);
-    var umlBuilder = new uml_builder_1.UmlBuilder(svgOutput ? diagramOutputType_1.DiagramOutputType.SVG : diagramOutputType_1.DiagramOutputType.PNG, [], []);
+    var umlBuilder = new uml_builder_1.UmlBuilder(svgOutput ? diagramOutputType_1.DiagramOutputType.SVG : diagramOutputType_1.DiagramOutputType.PNG, ["app\.module", ".*\.spec"], ["@", "three", "inversify*", "express"]);
     umlBuilder.outputUmlDiagram(modules, outputFilename, dependenciesOnly);
 }
 exports.createGraph = createGraph;

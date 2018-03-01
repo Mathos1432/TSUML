@@ -89,6 +89,9 @@ export class Parser {
 export function createGraph(targetPath: string, outputFilename: string, dependenciesOnly: boolean, recursive: boolean, svgOutput: boolean) {
     const visualiser = new Parser(recursive);
     const modules = visualiser.getModules(targetPath);
-    const umlBuilder = new UmlBuilder(svgOutput ? DiagramOutputType.SVG : DiagramOutputType.PNG, [], []);
+    const modulesToIgnore = ["app\.module", ".*\.spec"];
+    const dependenciesToIgnore = ["@", "three", "inversify.*", "express"];
+    const outputType = svgOutput ? DiagramOutputType.SVG : DiagramOutputType.PNG;
+    const umlBuilder = new UmlBuilder(outputType, modulesToIgnore, dependenciesToIgnore);
     umlBuilder.outputUmlDiagram(modules, outputFilename, dependenciesOnly);
 }

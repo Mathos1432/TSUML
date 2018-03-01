@@ -4,15 +4,7 @@ import * as graphviz from "graphviz";
 import { Element, Module, Class, Method, Property, Visibility, QualifiedName, Lifetime } from "./ts-elements";
 import { Collections } from "./extensions";
 import { DiagramOutputType } from "./diagramOutputType";
-
-const FONT_SIZE_KEY = "fontsize";
-const FONT_SIZE = 12;
-const FONT_NAME_KEY = "fontname";
-const FONT_NAME = "Verdana";
-const LAYOUT_KEY = "layout";
-const LAYOUT_TYPE = "dot"; //dot, sfdp and circo give pretty good results
-const OVERLAP_KEY = "overlap";
-const OVERLAP_TYPE = "scale";
+import { LAYOUT_KEY, OVERLAP_KEY, FONT_SIZE_KEY, FONT_NAME_KEY, LAYOUT_TYPE, OVERLAP_TYPE, FONT_SIZE, FONT_NAME } from "./config";
 
 export class UmlBuilder {
     private graph: graphviz.Graph;
@@ -44,7 +36,6 @@ export class UmlBuilder {
             }
         }
 
-        // console.log(this.nodes);
         // Generate a PNG/SVG output
         this.graph.output(DiagramOutputType[this.outputType].toLowerCase(), outputFilename);
     }
@@ -74,22 +65,10 @@ export class UmlBuilder {
 
         if (dependenciesOnly) {
             Collections.distinct(module.dependencies, d => d.name).forEach(d => {
-                if (d.name[0] !== "@" && module.name !== "app.module" && d.name !== "three" && d.name !== "inversify") {
+
+                if (this.shouldEdgeBeIgnored(module.name, d.name)) {
                     const edge = graph.addEdge(module.name, this.getGraphNodeId("", d.name));
-                    const targetNode = (edge as any).nodeTwo;
-                    if (!this.nodes[targetNode.id]) {
-                        this.nodes[targetNode.id] = {
-                            node: targetNode, count: 0
-                        };
-                    }
-                    this.nodes[targetNode.id].count++;
-                    if (this.nodes[targetNode.id].count >= 5) {
-                        targetNode.set("color", "orange");
-                        targetNode.set("style", "filled");
-                    }
-                    if (this.nodes[targetNode.id].count >= 9) {
-                        targetNode.set("color", "red");
-                    }
+                    this.checkImportCount((edge as any).nodeTwo);
                 }
             });
         } else {
@@ -113,25 +92,52 @@ export class UmlBuilder {
         }
     }
 
+    private shouldEdgeBeIgnored(moduleName: string, dependencyName: string): boolean {
+        return !this.stringIsInArray(this.dependenciesToIgnore, dependencyName)
+            && !this.stringIsInArray(this.modulesToIgnore, moduleName);
+    }
+
+    private stringIsInArray(array: string[], value: string): boolean {
+        return array.some((element: string) => { if (value.match(element) !== null) { return true; } })
+    }
+
+    private checkImportCount(targetNode: any): void {
+        if (!this.nodes[targetNode.id]) {
+            this.nodes[targetNode.id] = {
+                node: targetNode, count: 0
+            };
+        }
+        this.nodes[targetNode.id].count++;
+        if (this.nodes[targetNode.id].count >= 5) {
+            targetNode.set("color", "orange");
+            targetNode.set("style", "filled");
+        }
+        if (this.nodes[targetNode.id].count >= 9) {
+            targetNode.set("color", "red");
+        }
+    }
+
     private buildClass(classDef: Class, graph: graphviz.Graph, path: string) {
         let methodsSignatures = this.combineSignatures(classDef.methods, this.getMethodSignature);
         let propertiesSignatures = this.combineSignatures(classDef.properties, this.getPropertySignature);
+        let classNode = this.buildClassNode(graph, path, classDef, methodsSignatures, propertiesSignatures);
+        this.buildExtendsEdge(classDef, graph, classNode);
+    }
 
-        let classNode = graph.addNode(
-            this.getGraphNodeId(path, classDef.name),
-            {
-                "label": "{" + [classDef.name, methodsSignatures, propertiesSignatures].filter(e => e.length > 0).join("|") + "}"
-            });
-
+    private buildExtendsEdge(classDef: Class, graph: graphviz.Graph, classNode: graphviz.Node) {
         if (classDef.extends) {
             // add inheritance arrow
-            graph.addEdge(
-                classNode,
-                classDef.extends.parts.reduce((path, name) => this.getGraphNodeId(path, name), ""),
-                { "arrowhead": "onormal" }
-            );
+            const targetNode = classDef.extends.parts.reduce((path, name) => this.getGraphNodeId(path, name), "");
+            const attributes = { "arrowhead": "onormal" };
+            graph.addEdge(classNode, targetNode, attributes);
         }
+    }
 
+    private buildClassNode(graph: graphviz.Graph, path: string, classDef: Class, methodsSignatures: string, propertiesSignatures: string) {
+        const sourceNodeId = this.getGraphNodeId(path, classDef.name);
+        const label = [classDef.name, methodsSignatures, propertiesSignatures].filter(e => e.length > 0).join("|");
+        const attributes = { "label": "{" + label + "}" };
+        return graph.addNode(sourceNodeId, attributes);
     }
 
     private combineSignatures<T extends Element>(elements: T[], map: (e: T) => string): string {
