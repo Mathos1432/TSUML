@@ -20,6 +20,8 @@ var ClassTypeName = "";
 var MethodTypeName = "";
 var PropertyTypeName = "";
 var ImportedModuleTypeName = "";
+var EnumTypeName = "";
+var EnumMemberTypeName = "";
 var QualifiedName = (function () {
     function QualifiedName(nameParts) {
         this.nameParts = nameParts;
@@ -93,6 +95,7 @@ var Module = (function (_super) {
         _super.apply(this, arguments);
         this._classes = new Array();
         this._modules = new Array();
+        this._enums = new Array();
         this._dependencies = new Array();
         this._methods = new Array();
     }
@@ -124,6 +127,13 @@ var Module = (function (_super) {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Module.prototype, "enums", {
+        get: function () {
+            return this._enums;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Module.prototype, "path", {
         get: function () {
             return this._path;
@@ -144,6 +154,10 @@ var Module = (function (_super) {
                 return this.dependencies;
             case MethodTypeName:
                 return this.methods;
+            case EnumTypeName:
+                return this.enums;
+            case EnumMemberTypeName:
+                return this.enums;
         }
         return _super.prototype.getElementCollection.call(this, element);
     };
@@ -210,6 +224,50 @@ var Class = (function (_super) {
     return Class;
 }(Element));
 exports.Class = Class;
+var Enum = (function (_super) {
+    __extends(Enum, _super);
+    function Enum() {
+        _super.apply(this, arguments);
+        this._members = new Array();
+    }
+    Object.defineProperty(Enum.prototype, "members", {
+        get: function () {
+            return this._members;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Enum.prototype.getElementCollection = function (element) {
+        if (element instanceof EnumMember) {
+            return this._members;
+        }
+        return _super.prototype.getElementCollection.call(this, element);
+    };
+    return Enum;
+}(Element));
+exports.Enum = Enum;
+var EnumMember = (function (_super) {
+    __extends(EnumMember, _super);
+    function EnumMember() {
+        _super.apply(this, arguments);
+        this._members = new Array();
+    }
+    Object.defineProperty(EnumMember.prototype, "members", {
+        get: function () {
+            return this._members;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    EnumMember.prototype.getElementCollection = function (element) {
+        if (element instanceof EnumMember) {
+            return this._members;
+        }
+        return _super.prototype.getElementCollection.call(this, element);
+    };
+    return EnumMember;
+}(Element));
+exports.EnumMember = EnumMember;
 var Method = (function (_super) {
     __extends(Method, _super);
     function Method() {
@@ -261,4 +319,6 @@ ModuleTypeName = typeName(Module);
 ClassTypeName = typeName(Class);
 MethodTypeName = typeName(Method);
 PropertyTypeName = typeName(Property);
+EnumTypeName = typeName(Enum);
+EnumMemberTypeName = typeName(EnumMember);
 ImportedModuleTypeName = typeName(ImportedModule);

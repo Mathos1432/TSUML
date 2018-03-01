@@ -41,7 +41,7 @@ var UmlBuilder = (function () {
     UmlBuilder.prototype.buildModule = function (module, graph, path, level, dependenciesOnly) {
         var _this = this;
         var ModulePrefix = "cluster_";
-        var moduleId = this.getGraphNodeId(path, module.name);
+        var moduleId = UmlBuilder.getGraphNodeId(path, module.name);
         var cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
         cluster.set("label", (module.visibility !== ts_elements_1.Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
         cluster.set("style", "filled");
@@ -49,7 +49,7 @@ var UmlBuilder = (function () {
         if (dependenciesOnly) {
             extensions_1.Collections.distinct(module.dependencies, function (d) { return d.name; }).forEach(function (d) {
                 if (_this.shouldEdgeBeIgnored(module.name, d.name)) {
-                    var edge = graph.addEdge(module.name, _this.getGraphNodeId("", d.name));
+                    var edge = graph.addEdge(module.name, UmlBuilder.getGraphNodeId("", d.name));
                     _this.checkImportCount(edge.nodeTwo);
                 }
             });
@@ -57,7 +57,7 @@ var UmlBuilder = (function () {
         else {
             var moduleMethods = this.combineSignatures(module.methods, this.getMethodSignature);
             if (moduleMethods) {
-                cluster.addNode(this.getGraphNodeId(path, module.name), {
+                cluster.addNode(UmlBuilder.getGraphNodeId(path, module.name), {
                     "label": moduleMethods,
                     "shape": "none"
                 });
@@ -68,7 +68,36 @@ var UmlBuilder = (function () {
             module.classes.forEach(function (childClass) {
                 _this.buildClass(childClass, cluster, moduleId);
             });
+            module.enums.forEach(function (childEnum) {
+                _this.buildEnum(childEnum, cluster, moduleId);
+            });
         }
+    };
+    UmlBuilder.prototype.buildEnum = function (enumDef, graph, path) {
+        var sourceNodeId = UmlBuilder.getGraphNodeId(path, enumDef.name);
+        var members = enumDef.members.map(function (m) { return m.name + "\\l"; }).join("");
+        var label = [enumDef.name, members].filter(function (e) { return e.length > 0; }).join("|");
+        var attributes = { "label": "{" + label + "}" };
+        var enumNode = graph.addNode(sourceNodeId, attributes);
+    };
+    UmlBuilder.prototype.buildClass = function (classDef, graph, path) {
+        var methodsSignatures = this.combineSignatures(classDef.methods, this.getMethodSignature);
+        var propertiesSignatures = this.combineSignatures(classDef.properties, this.getPropertySignature);
+        var classNode = this.buildClassNode(graph, path, classDef, methodsSignatures, propertiesSignatures);
+        this.buildExtendsEdge(classDef, graph, classNode);
+    };
+    UmlBuilder.prototype.buildExtendsEdge = function (classDef, graph, classNode) {
+        if (classDef.extends) {
+            var targetNode = classDef.extends.parts.reduce(function (path, name) { return UmlBuilder.getGraphNodeId(path, name); }, "");
+            var attributes = { "arrowhead": "onormal" };
+            graph.addEdge(classNode, targetNode, attributes);
+        }
+    };
+    UmlBuilder.prototype.buildClassNode = function (graph, path, classDef, methodsSignatures, propertiesSignatures) {
+        var sourceNodeId = UmlBuilder.getGraphNodeId(path, classDef.name);
+        var label = [classDef.name, methodsSignatures, propertiesSignatures].filter(function (e) { return e.length > 0; }).join("|");
+        var attributes = { "label": "{" + label + "}" };
+        return graph.addNode(sourceNodeId, attributes);
     };
     UmlBuilder.prototype.shouldEdgeBeIgnored = function (moduleName, dependencyName) {
         return !this.stringIsInArray(this.dependenciesToIgnore, dependencyName)
@@ -94,26 +123,6 @@ var UmlBuilder = (function () {
             targetNode.set("color", "red");
         }
     };
-    UmlBuilder.prototype.buildClass = function (classDef, graph, path) {
-        var methodsSignatures = this.combineSignatures(classDef.methods, this.getMethodSignature);
-        var propertiesSignatures = this.combineSignatures(classDef.properties, this.getPropertySignature);
-        var classNode = this.buildClassNode(graph, path, classDef, methodsSignatures, propertiesSignatures);
-        this.buildExtendsEdge(classDef, graph, classNode);
-    };
-    UmlBuilder.prototype.buildExtendsEdge = function (classDef, graph, classNode) {
-        var _this = this;
-        if (classDef.extends) {
-            var targetNode = classDef.extends.parts.reduce(function (path, name) { return _this.getGraphNodeId(path, name); }, "");
-            var attributes = { "arrowhead": "onormal" };
-            graph.addEdge(classNode, targetNode, attributes);
-        }
-    };
-    UmlBuilder.prototype.buildClassNode = function (graph, path, classDef, methodsSignatures, propertiesSignatures) {
-        var sourceNodeId = this.getGraphNodeId(path, classDef.name);
-        var label = [classDef.name, methodsSignatures, propertiesSignatures].filter(function (e) { return e.length > 0; }).join("|");
-        var attributes = { "label": "{" + label + "}" };
-        return graph.addNode(sourceNodeId, attributes);
-    };
     UmlBuilder.prototype.combineSignatures = function (elements, map) {
         return elements.filter(function (e) { return e.visibility == ts_elements_1.Visibility.Public; })
             .map(function (e) { return map(e) + "\\l"; })
@@ -137,7 +146,7 @@ var UmlBuilder = (function () {
             property.name
         ].join(" ");
     };
-    UmlBuilder.prototype.getGraphNodeId = function (path, name) {
+    UmlBuilder.getGraphNodeId = function (path, name) {
         return ((path ? path + "/" : "") + name).replace(/\//g, "|");
     };
     UmlBuilder.visibilityToString = function (visibility) {

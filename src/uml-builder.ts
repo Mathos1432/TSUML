@@ -1,7 +1,7 @@
 /// <reference path="typings/graphviz/graphviz.d.ts"/>
 
 import * as graphviz from "graphviz";
-import { Element, Module, Class, Method, Property, Visibility, QualifiedName, Lifetime } from "./ts-elements";
+import { Element, Module, Class, Method, Property, Visibility, QualifiedName, Lifetime, Enum } from "./ts-elements";
 import { Collections } from "./extensions";
 import { DiagramOutputType } from "./diagramOutputType";
 import { LAYOUT_KEY, OVERLAP_KEY, FONT_SIZE_KEY, FONT_NAME_KEY, LAYOUT_TYPE, OVERLAP_TYPE, FONT_SIZE, FONT_NAME } from "./config";
@@ -58,7 +58,7 @@ export class UmlBuilder {
     private buildModule(module: Module, graph: graphviz.Graph, path: string, level: number, dependenciesOnly: boolean) {
         const ModulePrefix = "cluster_";
 
-        let moduleId = this.getGraphNodeId(path, module.name);
+        let moduleId = UmlBuilder.getGraphNodeId(path, module.name);
         let cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
 
         cluster.set("label", (module.visibility !== Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
@@ -67,9 +67,8 @@ export class UmlBuilder {
 
         if (dependenciesOnly) {
             Collections.distinct(module.dependencies, d => d.name).forEach(d => {
-
                 if (this.shouldEdgeBeIgnored(module.name, d.name)) {
-                    const edge = graph.addEdge(module.name, this.getGraphNodeId("", d.name));
+                    const edge = graph.addEdge(module.name, UmlBuilder.getGraphNodeId("", d.name));
                     this.checkImportCount((edge as any).nodeTwo);
                 }
             });
@@ -77,7 +76,7 @@ export class UmlBuilder {
             let moduleMethods = this.combineSignatures(module.methods, this.getMethodSignature);
             if (moduleMethods) {
                 cluster.addNode(
-                    this.getGraphNodeId(path, module.name),
+                    UmlBuilder.getGraphNodeId(path, module.name),
                     {
                         "label": moduleMethods,
                         "shape": "none"
@@ -91,7 +90,42 @@ export class UmlBuilder {
             module.classes.forEach(childClass => {
                 this.buildClass(childClass, cluster, moduleId);
             });
+
+            module.enums.forEach(childEnum => {
+                this.buildEnum(childEnum, cluster, moduleId);
+            });
         }
+    }
+
+    private buildEnum(enumDef: Enum, graph: graphviz.Graph, path: string): void {
+        const sourceNodeId = UmlBuilder.getGraphNodeId(path, enumDef.name);
+        const members = enumDef.members.map(m => m.name + "\\l").join("");
+        const label = [enumDef.name, members].filter(e => e.length > 0).join("|");
+        const attributes = { "label": "{" + label + "}" };
+        const enumNode = graph.addNode(sourceNodeId, attributes);
+    }
+
+    private buildClass(classDef: Class, graph: graphviz.Graph, path: string) {
+        let methodsSignatures = this.combineSignatures(classDef.methods, this.getMethodSignature);
+        let propertiesSignatures = this.combineSignatures(classDef.properties, this.getPropertySignature);
+        let classNode = this.buildClassNode(graph, path, classDef, methodsSignatures, propertiesSignatures);
+        this.buildExtendsEdge(classDef, graph, classNode);
+    }
+
+    private buildExtendsEdge(classDef: Class, graph: graphviz.Graph, classNode: graphviz.Node) {
+        if (classDef.extends) {
+            // add inheritance arrow
+            const targetNode = classDef.extends.parts.reduce((path, name) => UmlBuilder.getGraphNodeId(path, name), "");
+            const attributes = { "arrowhead": "onormal" };
+            graph.addEdge(classNode, targetNode, attributes);
+        }
+    }
+
+    private buildClassNode(graph: graphviz.Graph, path: string, classDef: Class, methodsSignatures: string, propertiesSignatures: string) {
+        const sourceNodeId = UmlBuilder.getGraphNodeId(path, classDef.name);
+        const label = [classDef.name, methodsSignatures, propertiesSignatures].filter(e => e.length > 0).join("|");
+        const attributes = { "label": "{" + label + "}" };
+        return graph.addNode(sourceNodeId, attributes);
     }
 
     private shouldEdgeBeIgnored(moduleName: string, dependencyName: string): boolean {
@@ -119,28 +153,7 @@ export class UmlBuilder {
         }
     }
 
-    private buildClass(classDef: Class, graph: graphviz.Graph, path: string) {
-        let methodsSignatures = this.combineSignatures(classDef.methods, this.getMethodSignature);
-        let propertiesSignatures = this.combineSignatures(classDef.properties, this.getPropertySignature);
-        let classNode = this.buildClassNode(graph, path, classDef, methodsSignatures, propertiesSignatures);
-        this.buildExtendsEdge(classDef, graph, classNode);
-    }
 
-    private buildExtendsEdge(classDef: Class, graph: graphviz.Graph, classNode: graphviz.Node) {
-        if (classDef.extends) {
-            // add inheritance arrow
-            const targetNode = classDef.extends.parts.reduce((path, name) => this.getGraphNodeId(path, name), "");
-            const attributes = { "arrowhead": "onormal" };
-            graph.addEdge(classNode, targetNode, attributes);
-        }
-    }
-
-    private buildClassNode(graph: graphviz.Graph, path: string, classDef: Class, methodsSignatures: string, propertiesSignatures: string) {
-        const sourceNodeId = this.getGraphNodeId(path, classDef.name);
-        const label = [classDef.name, methodsSignatures, propertiesSignatures].filter(e => e.length > 0).join("|");
-        const attributes = { "label": "{" + label + "}" };
-        return graph.addNode(sourceNodeId, attributes);
-    }
 
     private combineSignatures<T extends Element>(elements: T[], map: (e: T) => string): string {
         return elements.filter(e => e.visibility == Visibility.Public)
@@ -168,7 +181,7 @@ export class UmlBuilder {
         ].join(" ");
     }
 
-    private getGraphNodeId(path: string, name: string): string {
+    private static getGraphNodeId(path: string, name: string): string {
         return ((path ? path + "/" : "") + name).replace(/\//g, "|");
     }
 

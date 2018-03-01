@@ -66,6 +66,13 @@ var Analyser = (function () {
                 childElement = new ts_elements_1.Method(functionDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
                 skipChildren = true;
                 break;
+            case 220:
+                var enumDeclaration = currentNode;
+                childElement = new ts_elements_1.Enum(enumDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
+            case 250:
+                var enumMemberDeclaration = currentNode;
+                var member = new ts_elements_1.EnumMember(enumMemberDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
+                childElement = member;
         }
         if (childElement) {
             currentElement.addElement(childElement);

@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import * as path from "path";
-import { Element, Module, Class, Method, ImportedModule, Property, Visibility, QualifiedName, Lifetime } from "./ts-elements";
+import { Element, Module, Class, Method, ImportedModule, Property, Visibility, QualifiedName, Lifetime, Enum, EnumMember } from "./ts-elements";
 import { Collections } from "./extensions";
 
 export class Analyser {
@@ -74,7 +74,16 @@ export class Analyser {
                 childElement = new Method((<ts.Identifier>functionDeclaration.name).text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
                 skipChildren = true;
                 break;
+            case ts.SyntaxKind.EnumDeclaration:
+                let enumDeclaration = <ts.Declaration>currentNode;
+                childElement = new Enum((<ts.Identifier>enumDeclaration.name).text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
+                // skipChildren = true;
 
+            case ts.SyntaxKind.EnumMember:
+                let enumMemberDeclaration = <ts.EnumMember>currentNode;
+                let member = new EnumMember((<ts.Identifier>enumMemberDeclaration.name).text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
+                childElement = member;
+                // skipChildren = true;
         }
 
         if (childElement) {
@@ -82,7 +91,7 @@ export class Analyser {
         }
 
         if (skipChildren) {
-            return; // no need to inspect children
+            return;
         }
 
         ts.forEachChild(currentNode, (node) => this.analyseNode(node, childElement || currentElement));

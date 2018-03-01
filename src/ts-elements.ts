@@ -15,6 +15,8 @@ let ClassTypeName = "";
 let MethodTypeName = "";
 let PropertyTypeName = "";
 let ImportedModuleTypeName = "";
+let EnumTypeName = "";
+let EnumMemberTypeName = "";
 
 export class QualifiedName {
     private nameParts: string[];
@@ -69,6 +71,7 @@ export abstract class Element {
 export class Module extends Element {
     private _classes: Class[] = new Array<Class>();
     private _modules: Module[] = new Array<Module>();
+    private _enums: Enum[] = new Array<Enum>();
     private _dependencies: ImportedModule[] = new Array<ImportedModule>();
     private _methods = new Array<Method>();
     private _path: string;
@@ -89,6 +92,10 @@ export class Module extends Element {
         return this._methods;
     }
 
+    public get enums(): Array<Enum> {
+        return this._enums;
+    }
+
     public get path(): string {
         return this._path;
     }
@@ -107,6 +114,10 @@ export class Module extends Element {
                 return this.dependencies;
             case MethodTypeName:
                 return this.methods;
+            case EnumTypeName:
+                return this.enums;
+            case EnumMemberTypeName:
+                return this.enums;
         }
         return super.getElementCollection(element);
     }
@@ -160,6 +171,37 @@ export class Class extends Element {
     }
 }
 
+export class Enum extends Element {
+    private _members = new Array<EnumMember>();
+
+    public get members(): Array<Method> {
+        return this._members;
+    }
+
+    protected getElementCollection(element: Element): Array<Element> {
+        if (element instanceof EnumMember) {
+            return this._members;
+        }
+        return super.getElementCollection(element);
+    }
+}
+
+
+export class EnumMember extends Element {
+    private _members = new Array<EnumMember>();
+
+    public get members(): Array<Method> {
+        return this._members;
+    }
+    
+    protected getElementCollection(element: Element): Array<Element> {
+        if (element instanceof EnumMember) {
+            return this._members;
+        }
+        return super.getElementCollection(element);
+    }
+}
+
 export class Method extends Element {
 
 }
@@ -197,4 +239,6 @@ ModuleTypeName = typeName(Module);
 ClassTypeName = typeName(Class);
 MethodTypeName = typeName(Method);
 PropertyTypeName = typeName(Property);
+EnumTypeName = typeName(Enum);
+EnumMemberTypeName = typeName(EnumMember);
 ImportedModuleTypeName = typeName(ImportedModule);
