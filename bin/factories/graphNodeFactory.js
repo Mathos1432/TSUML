@@ -4,23 +4,16 @@ var uml_builder_1 = require("../uml-builder");
 var GraphNodeFactory = (function () {
     function GraphNodeFactory() {
     }
-    GraphNodeFactory.prototype.create = function (element, graph, path, level, dependenciesOnly) {
+    GraphNodeFactory.prototype.create = function (element, graph, path) {
         if (element instanceof ts_elements_1.Class) {
             return this.createClassNode(element, graph, path);
         }
         else if (element instanceof ts_elements_1.EnumMember) {
             return this.createEnumNode(element, graph, path);
         }
-        else if (element instanceof ts_elements_1.Module) {
-            if (level === undefined || dependenciesOnly === undefined) {
-                throw new Error("To create a module node, the level and dependenciesOnly parameters are required.");
-            }
-            console.log("module");
-        }
         else {
             throw new Error("The factory can't handle creation of " + element.name);
         }
-        return {};
     };
     GraphNodeFactory.prototype.createEnumNode = function (enumDef, graph, path) {
         var sourceNodeId = uml_builder_1.UmlBuilder.getGraphNodeId(path, enumDef.name);

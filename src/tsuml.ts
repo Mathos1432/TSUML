@@ -6,7 +6,7 @@ import { Module } from "./ts-elements";
 import { Analyser } from "./ts-analyser";
 import { UmlBuilder } from "./uml-builder";
 import { DiagramOutputType } from "./diagramOutputType";
-import { ICouplingConfig } from "./tsviz-app";
+import { ICouplingConfig } from "./tsuml-app";
 
 const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
     noEmitOnError: true,

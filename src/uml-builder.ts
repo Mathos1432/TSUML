@@ -5,7 +5,7 @@ import { Element, Module, Class, Method, Property, Visibility, QualifiedName, Li
 import { Collections } from "./extensions";
 import { DiagramOutputType } from "./diagramOutputType";
 import { LAYOUT_KEY, OVERLAP_KEY, FONT_SIZE_KEY, FONT_NAME_KEY, LAYOUT_TYPE, OVERLAP_TYPE, FONT_SIZE, FONT_NAME } from "./config";
-import { ICouplingConfig } from "./tsviz-app";
+import { ICouplingConfig } from "./tsuml-app";
 import { GraphNodeFactory } from "./factories/graphNodeFactory";
 
 export class UmlBuilder {

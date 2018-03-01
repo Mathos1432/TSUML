@@ -7,7 +7,7 @@ You need to install [GraphViz](http://www.graphviz.org/download/), including cor
 
 ## Usage
 ```
-tsviz <switches> <sources filename/directory> <output.png>
+tsuml <switches> <sources filename/directory> <output.png>
 
 Available switches:
   -d, dependencies: produces the modules dependencies diagram
@@ -18,5 +18,5 @@ Available switches:
 In order to create a diagram for an entire project you simply type:
 
 ```bash
-tsviz <projectPath> diagram.png
+tsuml <projectPath> diagram.png
 ```

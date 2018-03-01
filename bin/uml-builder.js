@@ -4,7 +4,7 @@ var ts_elements_1 = require("./ts-elements");
 var extensions_1 = require("./extensions");
 var diagramOutputType_1 = require("./diagramOutputType");
 var config_1 = require("./config");
-var classNodeFactory_1 = require("./factories/classNodeFactory");
+var graphNodeFactory_1 = require("./factories/graphNodeFactory");
 var UmlBuilder = (function () {
     function UmlBuilder(outputType, modulesToIgnore, dependenciesToIgnore, couplingConfig) {
         this.outputType = outputType;
@@ -42,7 +42,7 @@ var UmlBuilder = (function () {
     UmlBuilder.prototype.buildModule = function (module, graph, path, level, dependenciesOnly) {
         var _this = this;
         var ModulePrefix = "cluster_";
-        var graphNodeFactory = new classNodeFactory_1.GraphNodeFactory();
+        var graphNodeFactory = new graphNodeFactory_1.GraphNodeFactory();
         var moduleId = UmlBuilder.getGraphNodeId(path, module.name);
         var cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
         cluster.set("label", (module.visibility !== ts_elements_1.Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
@@ -59,13 +59,14 @@ var UmlBuilder = (function () {
         else {
             var moduleMethods = this.combineSignatures(module.methods, this.getMethodSignature);
             if (moduleMethods) {
-                cluster.addNode(UmlBuilder.getGraphNodeId(path, module.name), {
+                var attributes = {
                     "label": moduleMethods,
                     "shape": "none"
-                });
+                };
+                cluster.addNode(UmlBuilder.getGraphNodeId(path, module.name), attributes);
             }
             module.modules.forEach(function (childModule) {
-                graphNodeFactory.create(childModule, cluster, moduleId, level + 1, false);
+                _this.buildModule(childModule, cluster, moduleId, level + 1, false);
             });
             module.classes.forEach(function (childClass) {
                 graphNodeFactory.create(childClass, cluster, moduleId);
