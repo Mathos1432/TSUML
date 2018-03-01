@@ -6,7 +6,7 @@ import { Collections } from "./extensions";
 import { DiagramOutputType } from "./diagramOutputType";
 import { LAYOUT_KEY, OVERLAP_KEY, FONT_SIZE_KEY, FONT_NAME_KEY, LAYOUT_TYPE, OVERLAP_TYPE, FONT_SIZE, FONT_NAME } from "./config";
 import { ICouplingConfig } from "./tsviz-app";
-import { ClassNodeFactory } from "./factories/classNodeFactory";
+import { GraphNodeFactory } from "./factories/graphNodeFactory";
 
 export class UmlBuilder {
     private graph: graphviz.Graph;
@@ -58,7 +58,7 @@ export class UmlBuilder {
 
     private buildModule(module: Module, graph: graphviz.Graph, path: string, level: number, dependenciesOnly: boolean) {
         const ModulePrefix = "cluster_";
-        const classNodeFactory = new ClassNodeFactory();
+        const graphNodeFactory = new GraphNodeFactory();
         let moduleId = UmlBuilder.getGraphNodeId(path, module.name);
         let cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
 
@@ -76,12 +76,11 @@ export class UmlBuilder {
         } else {
             let moduleMethods = this.combineSignatures(module.methods, this.getMethodSignature);
             if (moduleMethods) {
-                cluster.addNode(
-                    UmlBuilder.getGraphNodeId(path, module.name),
-                    {
-                        "label": moduleMethods,
-                        "shape": "none"
-                    });
+                const attributes = {
+                    "label": moduleMethods,
+                    "shape": "none"
+                };
+                cluster.addNode(UmlBuilder.getGraphNodeId(path, module.name), attributes);
             }
 
             module.modules.forEach(childModule => {
@@ -89,21 +88,13 @@ export class UmlBuilder {
             });
 
             module.classes.forEach(childClass => {
-                classNodeFactory.create(childClass, cluster, moduleId);
+                graphNodeFactory.create(childClass, cluster, moduleId);
             });
 
             module.enums.forEach(childEnum => {
-                this.buildEnum(childEnum, cluster, moduleId);
+                graphNodeFactory.create(childEnum, cluster, moduleId);
             });
         }
-    }
-
-    private buildEnum(enumDef: Enum, graph: graphviz.Graph, path: string): void {
-        const sourceNodeId = UmlBuilder.getGraphNodeId(path, enumDef.name);
-        const members = enumDef.members.map(m => m.name + "\\l").join("");
-        const label = [enumDef.name, members].filter(e => e.length > 0).join("|");
-        const attributes = { "label": "{" + label + "}" };
-        const enumNode = graph.addNode(sourceNodeId, attributes);
     }
 
     private shouldEdgeBeIgnored(moduleName: string, dependencyName: string): boolean {

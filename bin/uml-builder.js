@@ -42,7 +42,7 @@ var UmlBuilder = (function () {
     UmlBuilder.prototype.buildModule = function (module, graph, path, level, dependenciesOnly) {
         var _this = this;
         var ModulePrefix = "cluster_";
-        var classNodeFactory = new classNodeFactory_1.ClassNodeFactory();
+        var graphNodeFactory = new classNodeFactory_1.GraphNodeFactory();
         var moduleId = UmlBuilder.getGraphNodeId(path, module.name);
         var cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
         cluster.set("label", (module.visibility !== ts_elements_1.Visibility.Public ? UmlBuilder.visibilityToString(module.visibility) + " " : "") + module.name);
@@ -65,22 +65,15 @@ var UmlBuilder = (function () {
                 });
             }
             module.modules.forEach(function (childModule) {
-                _this.buildModule(childModule, cluster, moduleId, level + 1, false);
+                graphNodeFactory.create(childModule, cluster, moduleId, level + 1, false);
             });
             module.classes.forEach(function (childClass) {
-                classNodeFactory.create(childClass, cluster, moduleId);
+                graphNodeFactory.create(childClass, cluster, moduleId);
             });
             module.enums.forEach(function (childEnum) {
-                _this.buildEnum(childEnum, cluster, moduleId);
+                graphNodeFactory.create(childEnum, cluster, moduleId);
             });
         }
-    };
-    UmlBuilder.prototype.buildEnum = function (enumDef, graph, path) {
-        var sourceNodeId = UmlBuilder.getGraphNodeId(path, enumDef.name);
-        var members = enumDef.members.map(function (m) { return m.name + "\\l"; }).join("");
-        var label = [enumDef.name, members].filter(function (e) { return e.length > 0; }).join("|");
-        var attributes = { "label": "{" + label + "}" };
-        var enumNode = graph.addNode(sourceNodeId, attributes);
     };
     UmlBuilder.prototype.shouldEdgeBeIgnored = function (moduleName, dependencyName) {
         return !UmlBuilder.stringIsInArray(this.dependenciesToIgnore, dependencyName)

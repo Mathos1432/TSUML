@@ -1,12 +1,31 @@
 /// <reference path="../typings/graphviz/graphviz.d.ts"/>
 
 import * as graphviz from "graphviz";
-import { Class, Element, Property, Method, Visibility } from "../ts-elements";
+import { Class, Element, Property, Method, Visibility, Enum, Module, EnumMember } from "../ts-elements";
 import { Graph } from "graphviz";
 import { UmlBuilder } from "../uml-builder";
 
-export class ClassNodeFactory {
-    public create(classDefinition: Class, graph: graphviz.Graph, path: string): graphviz.Node {
+export class GraphNodeFactory {
+
+    public create(element: Element, graph: graphviz.Graph, path: string): graphviz.Node {
+        if (element instanceof Class) {
+            return this.createClassNode(element as Class, graph, path)
+        } else if (element instanceof EnumMember) {
+            return this.createEnumNode(element as EnumMember, graph, path);
+        } else {
+            throw new Error("The factory can't handle creation of " + element.name);
+        }
+    }
+
+    private createEnumNode(enumDef: EnumMember, graph: graphviz.Graph, path: string): graphviz.Node {
+        const sourceNodeId = UmlBuilder.getGraphNodeId(path, enumDef.name);
+        const members = enumDef.members.map(m => m.name + "\\l").join("");
+        const label = [enumDef.name, members].filter(e => e.length > 0).join("|");
+        const attributes = { "label": "{" + label + "}" };
+        return graph.addNode(sourceNodeId, attributes);
+    }
+
+    private createClassNode(classDefinition: Class, graph: graphviz.Graph, path: string): graphviz.Node {
         let methodsSignatures = this.combineSignatures(classDefinition.methods, this.getMethodSignature);
         let propertiesSignatures = this.combineSignatures(classDefinition.properties, this.getPropertySignature);
         let classNode = this.buildClassNode(graph, path, classDefinition, methodsSignatures, propertiesSignatures);
