@@ -1,32 +1,61 @@
-import * as tsviz from "./tsviz"; 
+import * as tsviz from "./tsviz";
+import { DiagramOutputType } from "./diagramOutputType";
 
 function main(args: string[]) {
-    let switches = args.filter(a => a.indexOf("-") === 0);
-    let nonSwitches = args.filter(a => a.indexOf("-") !== 0);
-    
+    const switches = args.filter(a => a.indexOf("-") === 0);
+    const nonSwitches = args.filter(a => a.indexOf("-") !== 0);
+
     if (nonSwitches.length < 1) {
         console.error(
-            "Invalid number of arguments. Usage:\n" + 
+            "Invalid number of arguments. Usage:\n" +
             "  <switches> <sources filename/directory> <output.png>\n" +
             "Available switches:\n" +
-            "  -d, dependencies: produces the modules' dependencies diagram\n" + 
+            "  -d, dependencies: produces the modules' dependencies diagram\n" +
             "  -r, recursive: include files in subdirectories (must be non-cyclic)" +
+            "  -c, coupling: print classes with a high coupling in different colors." +
             "  -svg: output an svg file");
         return;
     }
-    
-    let targetPath = nonSwitches.length > 0 ? nonSwitches[0] : "";
-    let outputFilename = nonSwitches.length > 1 ? nonSwitches[1] : "diagram.png";
 
-    let dependenciesOnly = switches.indexOf("-d") >= 0 || switches.indexOf("-dependencies") >= 0; // dependencies or uml?
-    let recursive = switches.indexOf("-r") >= 0 || switches.indexOf("-recursive") >= 0;
-    let svgOutput = switches.indexOf("-svg") >= 0;
+    const targetPath = nonSwitches.length > 0 ? nonSwitches[0] : "";
+    const outputFilename = nonSwitches.length > 1 ? nonSwitches[1] : "diagram.png";
 
-    tsviz.createGraph(targetPath, outputFilename, dependenciesOnly, recursive, svgOutput);
+    const dependenciesOnly = switches.indexOf("-d") >= 0 || switches.indexOf("-dependencies") >= 0; // dependencies or uml?
+    const recursive = switches.indexOf("-r") >= 0 || switches.indexOf("-recursive") >= 0;
+    const outputType = switches.indexOf("-svg") >= 0 ? DiagramOutputType.SVG : DiagramOutputType.PNG;
+
+    const couplingConfig: ICouplingConfig = {
+        active: switches.indexOf("-c") >= 0 || switches.indexOf("-coupling") >= 0,
+        warning: 5,
+        problem: 9
+    }
+
+    console.log("---------- Configuration ----------");
+    console.log("|");
+    console.log("| Sources location:    " + targetPath);
+    console.log("| Ouput location:      " + outputFilename);
+    console.log("| Dependencies only:   " + dependenciesOnly);
+    console.log("| Recursive:           " + recursive);
+    console.log("| Output type:         " + DiagramOutputType[outputType]);
+    console.log("| Flag coupling:       " + couplingConfig.active);
+    console.log("| Coupling Warning:    " + couplingConfig.warning);
+    console.log("| Coupling Problem:    " + couplingConfig.problem);
+    console.log("|");
+    console.log("-----------------------------------");
+
+
+
+    tsviz.createGraph(targetPath, outputFilename, dependenciesOnly, recursive, outputType, couplingConfig);
 
     console.log("Done");
 }
 
 export function run() {
     main(process.argv.slice(2));
+}
+
+export interface ICouplingConfig {
+    active: boolean;
+    warning: number;
+    problem: number;
 }

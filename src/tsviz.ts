@@ -6,6 +6,7 @@ import { Module } from "./ts-elements";
 import { Analyser } from "./ts-analyser";
 import { UmlBuilder } from "./uml-builder";
 import { DiagramOutputType } from "./diagramOutputType";
+import { ICouplingConfig } from "./tsviz-app";
 
 const DEFAULT_COMPILER_OPTIONS: ts.CompilerOptions = {
     noEmitOnError: true,
@@ -86,9 +87,11 @@ export class Parser {
     }
 }
 
-export function createGraph(targetPath: string, outputFilename: string, dependenciesOnly: boolean, recursive: boolean, svgOutput: boolean) {
+export function createGraph(targetPath: string, outputFilename: string, dependenciesOnly: boolean, recursive: boolean, outputType: DiagramOutputType, couplingConfig: ICouplingConfig) {
     const visualiser = new Parser(recursive);
     const modules = visualiser.getModules(targetPath);
-    const umlBuilder = new UmlBuilder(svgOutput ? DiagramOutputType.SVG : DiagramOutputType.PNG, [], []);
+    const modulesToIgnore = ["app\.module", ".*\.spec"];
+    const dependenciesToIgnore = ["@", "three", "inversify.*", "express"];
+    const umlBuilder = new UmlBuilder(outputType, modulesToIgnore, dependenciesToIgnore, couplingConfig);
     umlBuilder.outputUmlDiagram(modules, outputFilename, dependenciesOnly);
 }
