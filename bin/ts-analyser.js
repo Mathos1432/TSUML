@@ -69,10 +69,17 @@ var Analyser = (function () {
             case 220:
                 var enumDeclaration = currentNode;
                 childElement = new ts_elements_1.Enum(enumDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
+                break;
             case 250:
                 var enumMemberDeclaration = currentNode;
                 var member = new ts_elements_1.EnumMember(enumMemberDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
                 childElement = member;
+                break;
+            case 218:
+                var interfaceDeclaration = currentNode;
+                childElement = new ts_elements_1.Interface(interfaceDeclaration.name.text, currentElement, this.getVisibility(currentNode), this.getLifetime(currentNode));
+                console.log("interface declared: " + currentNode.name.text);
+                break;
         }
         if (childElement) {
             currentElement.addElement(childElement);

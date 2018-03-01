@@ -22,6 +22,7 @@ var PropertyTypeName = "";
 var ImportedModuleTypeName = "";
 var EnumTypeName = "";
 var EnumMemberTypeName = "";
+var InterfaceTypeName = "";
 var QualifiedName = (function () {
     function QualifiedName(nameParts) {
         this.nameParts = nameParts;
@@ -95,10 +96,18 @@ var Module = (function (_super) {
         _super.apply(this, arguments);
         this._classes = new Array();
         this._modules = new Array();
+        this._interfaces = new Array();
         this._enums = new Array();
         this._dependencies = new Array();
         this._methods = new Array();
     }
+    Object.defineProperty(Module.prototype, "interfaces", {
+        get: function () {
+            return this._interfaces;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Module.prototype, "classes", {
         get: function () {
             return this._classes;
@@ -158,6 +167,8 @@ var Module = (function (_super) {
                 return this.enums;
             case EnumMemberTypeName:
                 return this.enums;
+            case InterfaceTypeName:
+                return this.interfaces;
         }
         return _super.prototype.getElementCollection.call(this, element);
     };
@@ -284,6 +295,14 @@ var ImportedModule = (function (_super) {
     return ImportedModule;
 }(Element));
 exports.ImportedModule = ImportedModule;
+var Interface = (function (_super) {
+    __extends(Interface, _super);
+    function Interface() {
+        _super.apply(this, arguments);
+    }
+    return Interface;
+}(Element));
+exports.Interface = Interface;
 var Property = (function (_super) {
     __extends(Property, _super);
     function Property() {
@@ -322,3 +341,4 @@ PropertyTypeName = typeName(Property);
 EnumTypeName = typeName(Enum);
 EnumMemberTypeName = typeName(EnumMember);
 ImportedModuleTypeName = typeName(ImportedModule);
+InterfaceTypeName = typeName(Interface);

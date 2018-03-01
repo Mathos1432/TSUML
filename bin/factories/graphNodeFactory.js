@@ -8,7 +8,10 @@ var GraphNodeFactory = (function () {
         if (element instanceof ts_elements_1.Class) {
             return this.createClassNode(element, graph, path);
         }
-        else if (element instanceof ts_elements_1.EnumMember) {
+        else if (element instanceof ts_elements_1.Interface) {
+            console.error("Instanciation of interfaces hasn't been implemented yet.");
+        }
+        else if (element instanceof ts_elements_1.Enum) {
             return this.createEnumNode(element, graph, path);
         }
         else {
