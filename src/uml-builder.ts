@@ -6,6 +6,7 @@ import { Collections } from "./extensions";
 import { DiagramOutputType } from "./diagramOutputType";
 import { LAYOUT_KEY, OVERLAP_KEY, FONT_SIZE_KEY, FONT_NAME_KEY, LAYOUT_TYPE, OVERLAP_TYPE, FONT_SIZE, FONT_NAME } from "./config";
 import { ICouplingConfig } from "./tsviz-app";
+import { ClassNodeFactory } from "./factories/classNodeFactory";
 
 export class UmlBuilder {
     private graph: graphviz.Graph;
@@ -57,7 +58,7 @@ export class UmlBuilder {
 
     private buildModule(module: Module, graph: graphviz.Graph, path: string, level: number, dependenciesOnly: boolean) {
         const ModulePrefix = "cluster_";
-
+        const classNodeFactory = new ClassNodeFactory();
         let moduleId = UmlBuilder.getGraphNodeId(path, module.name);
         let cluster = graph.addCluster("\"" + ModulePrefix + moduleId + "\"");
 
@@ -88,7 +89,7 @@ export class UmlBuilder {
             });
 
             module.classes.forEach(childClass => {
-                this.buildClass(childClass, cluster, moduleId);
+                classNodeFactory.create(childClass, cluster, moduleId);
             });
 
             module.enums.forEach(childEnum => {
@@ -105,35 +106,12 @@ export class UmlBuilder {
         const enumNode = graph.addNode(sourceNodeId, attributes);
     }
 
-    private buildClass(classDef: Class, graph: graphviz.Graph, path: string) {
-        let methodsSignatures = this.combineSignatures(classDef.methods, this.getMethodSignature);
-        let propertiesSignatures = this.combineSignatures(classDef.properties, this.getPropertySignature);
-        let classNode = this.buildClassNode(graph, path, classDef, methodsSignatures, propertiesSignatures);
-        this.buildExtendsEdge(classDef, graph, classNode);
-    }
-
-    private buildExtendsEdge(classDef: Class, graph: graphviz.Graph, classNode: graphviz.Node) {
-        if (classDef.extends) {
-            // add inheritance arrow
-            const targetNode = classDef.extends.parts.reduce((path, name) => UmlBuilder.getGraphNodeId(path, name), "");
-            const attributes = { "arrowhead": "onormal" };
-            graph.addEdge(classNode, targetNode, attributes);
-        }
-    }
-
-    private buildClassNode(graph: graphviz.Graph, path: string, classDef: Class, methodsSignatures: string, propertiesSignatures: string) {
-        const sourceNodeId = UmlBuilder.getGraphNodeId(path, classDef.name);
-        const label = [classDef.name, methodsSignatures, propertiesSignatures].filter(e => e.length > 0).join("|");
-        const attributes = { "label": "{" + label + "}" };
-        return graph.addNode(sourceNodeId, attributes);
-    }
-
     private shouldEdgeBeIgnored(moduleName: string, dependencyName: string): boolean {
-        return !this.stringIsInArray(this.dependenciesToIgnore, dependencyName)
-            && !this.stringIsInArray(this.modulesToIgnore, moduleName);
+        return !UmlBuilder.stringIsInArray(this.dependenciesToIgnore, dependencyName)
+            && !UmlBuilder.stringIsInArray(this.modulesToIgnore, moduleName);
     }
 
-    private stringIsInArray(array: string[], value: string): boolean {
+    private static stringIsInArray(array: string[], value: string): boolean {
         return array.some((element: string) => { if (value.match(element) !== null) { return true; } })
     }
 
@@ -152,8 +130,6 @@ export class UmlBuilder {
             targetNode.set("color", "red");
         }
     }
-
-
 
     private combineSignatures<T extends Element>(elements: T[], map: (e: T) => string): string {
         return elements.filter(e => e.visibility == Visibility.Public)
@@ -181,11 +157,11 @@ export class UmlBuilder {
         ].join(" ");
     }
 
-    private static getGraphNodeId(path: string, name: string): string {
+    public static getGraphNodeId(path: string, name: string): string {
         return ((path ? path + "/" : "") + name).replace(/\//g, "|");
     }
 
-    private static visibilityToString(visibility: Visibility) {
+    public static visibilityToString(visibility: Visibility) {
         switch (visibility) {
             case Visibility.Public:
                 return "+";
@@ -196,7 +172,7 @@ export class UmlBuilder {
         }
     }
 
-    private static lifetimeToString(lifetime: Lifetime) {
+    public static lifetimeToString(lifetime: Lifetime) {
         return lifetime === Lifetime.Static ? "\\<static\\>" : "";
     }
 }

@@ -39,7 +39,6 @@ export class Analyser {
                 let moduleName = (<ts.StringLiteral>importDeclaration.moduleSpecifier).text;
                 childElement = new ImportedModule(moduleName, currentElement);
                 break;
-
             case ts.SyntaxKind.ClassDeclaration:
                 let classDeclaration = <ts.ClassDeclaration>currentNode;
                 let classDef = new Class(classDeclaration.name.text, currentElement, this.getVisibility(currentNode));
